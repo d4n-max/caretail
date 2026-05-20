@@ -1,11 +1,16 @@
 package com.caretail.app.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
+import com.caretail.app.data.local.database.AppContainer
 import com.caretail.app.ui.screens.diary.AddDiaryEntryScreen
 import com.caretail.app.ui.screens.diary.HealthDiaryScreen
 import com.caretail.app.ui.screens.documents.DocumentsScreen
@@ -24,6 +29,8 @@ fun CareTailNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val appContainer = remember(context) { AppContainer(context.applicationContext) }
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val onBottomNavigate: (String) -> Unit = { route ->
         navController.navigate(route) {
@@ -47,7 +54,10 @@ fun CareTailNavGraph(
             HomeScreen(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
+                petRepository = appContainer.petRepository,
                 onOpenPremium = { navController.navigate(CareTailRoute.Premium.route) },
+                onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
+                onOpenPetProfile = { petId -> navController.navigate(CareTailRoute.PetProfile.createRoute(petId)) },
                 onAddReminder = { navController.navigate(CareTailRoute.AddReminder.route) },
             )
         }
@@ -55,14 +65,22 @@ fun CareTailNavGraph(
             PetsScreen(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
-                onOpenPetProfile = { navController.navigate(CareTailRoute.PetProfile.route) },
+                petRepository = appContainer.petRepository,
+                onOpenPetProfile = { petId -> navController.navigate(CareTailRoute.PetProfile.createRoute(petId)) },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
+                onOpenPremium = { navController.navigate(CareTailRoute.Premium.route) },
             )
         }
-        composable(CareTailRoute.PetProfile.route) {
+        composable(
+            route = CareTailRoute.PetProfile.route,
+            arguments = listOf(navArgument(CareTailRoute.PetProfile.petIdArg) { type = NavType.LongType }),
+        ) { backStackEntry ->
+            val petId = backStackEntry.arguments?.getLong(CareTailRoute.PetProfile.petIdArg) ?: 0L
             PetProfileScreen(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
+                petRepository = appContainer.petRepository,
+                petId = petId,
                 onBack = { navController.popBackStack() },
             )
         }
@@ -70,7 +88,14 @@ fun CareTailNavGraph(
             AddPetScreen(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
+                petRepository = appContainer.petRepository,
                 onBack = { navController.popBackStack() },
+                onSaved = { petId ->
+                    navController.navigate(CareTailRoute.PetProfile.createRoute(petId)) {
+                        popUpTo(CareTailRoute.Pets.route)
+                    }
+                },
+                onOpenPremium = { navController.navigate(CareTailRoute.Premium.route) },
             )
         }
         composable(CareTailRoute.Reminders.route) {

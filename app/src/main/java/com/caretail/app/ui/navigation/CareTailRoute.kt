@@ -4,7 +4,10 @@ sealed class CareTailRoute(val route: String, val label: String) {
     data object Onboarding : CareTailRoute("onboarding", "Onboarding")
     data object Home : CareTailRoute("home", "Home")
     data object Pets : CareTailRoute("pets", "Pets")
-    data object PetProfile : CareTailRoute("pet_profile", "Pet Profile")
+    data object PetProfile : CareTailRoute("pet_profile/{petId}", "Pet Profile") {
+        const val petIdArg = "petId"
+        fun createRoute(petId: Long): String = "pet_profile/$petId"
+    }
     data object AddPet : CareTailRoute("add_pet", "Add Pet")
     data object Reminders : CareTailRoute("reminders", "Reminders")
     data object AddReminder : CareTailRoute("add_reminder", "Add Reminder")

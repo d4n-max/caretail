@@ -1,5 +1,6 @@
 package com.caretail.app.ui.screens.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,10 +18,16 @@ import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.data.local.entities.PetEntity
+import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.ui.components.AddPetIcon
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
@@ -43,14 +50,23 @@ import com.caretail.app.ui.theme.CareTailPrimaryDark
 import com.caretail.app.ui.theme.CareTailTextPrimary
 import com.caretail.app.ui.theme.CareTailTextSecondary
 import com.caretail.app.ui.theme.CareTailWarmSurface
+import com.caretail.app.ui.viewmodel.HomeViewModel
+import com.caretail.app.ui.viewmodel.HomeViewModelFactory
 
 @Composable
 fun HomeScreen(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
+    petRepository: PetRepository,
     onOpenPremium: () -> Unit,
+    onAddPet: () -> Unit,
+    onOpenPetProfile: (Long) -> Unit,
     onAddReminder: () -> Unit,
 ) {
+    val factory = remember(petRepository) { HomeViewModelFactory(petRepository) }
+    val viewModel: HomeViewModel = viewModel(factory = factory)
+    val uiState by viewModel.uiState.collectAsState()
+
     CareTailScaffold(
         currentRoute = currentRoute,
         onNavigate = onNavigate,
@@ -83,14 +99,34 @@ fun HomeScreen(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                PetSummaryCard("Luna", "Cat", "British Shorthair", "Vaccinated", CareTailPrimary.copy(alpha = 0.22f))
-                PetSummaryCard("Max", "Dog", "Golden Retriever", "Walk at 5 PM", CareTailWarmSurface)
+                if (uiState.pets.isEmpty()) {
+                    AddFirstPetCard(onClick = onAddPet)
+                } else {
+                    uiState.pets.forEachIndexed { index, pet ->
+                        PetSummaryCard(
+                            pet = pet,
+                            avatarColor = if (index % 2 == 0) CareTailPrimary.copy(alpha = 0.22f) else CareTailWarmSurface,
+                            onClick = { onOpenPetProfile(pet.id) },
+                        )
+                    }
+                }
             }
             Spacer(Modifier.height(24.dp))
             SectionHeader("Quick Actions")
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                QuickActionCard("Add Pet", AddPetIcon, Modifier.weight(1f), onClick = { onNavigate(CareTailRoute.Pets.route) })
+                QuickActionCard(
+                    "Add Pet",
+                    AddPetIcon,
+                    Modifier.weight(1f),
+                    onClick = {
+                        if (uiState.canAddPet) {
+                            onAddPet()
+                        } else {
+                            onOpenPremium()
+                        }
+                    },
+                )
                 QuickActionCard("Reminder", ReminderIcon, Modifier.weight(1f), onClick = onAddReminder)
                 QuickActionCard("Log Health", HealthIcon, Modifier.weight(1f), onClick = { onNavigate(CareTailRoute.Diary.route) })
                 QuickActionCard("Document", DocumentIcon, Modifier.weight(1f), onClick = { onNavigate(CareTailRoute.Settings.route) })
@@ -126,24 +162,40 @@ fun HomeScreen(
 
 @Composable
 private fun PetSummaryCard(
-    name: String,
-    species: String,
-    breed: String,
-    status: String,
+    pet: PetEntity,
     avatarColor: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
 ) {
-    CareTailCard(modifier = Modifier.width(248.dp)) {
+    CareTailCard(modifier = Modifier.width(248.dp).clickable(onClick = onClick)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            PetAvatar(name = name, size = 62.dp, backgroundColor = avatarColor)
+            PetAvatar(name = pet.name, size = 62.dp, backgroundColor = avatarColor)
             Column {
-                Text(name, style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
-                Text("$species - $breed", style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
+                Text(pet.name, style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
+                Text(petSubtitle(pet), style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
             }
         }
         Spacer(Modifier.height(14.dp))
-        StatusPill(text = status)
+        StatusPill(text = pet.weightKg?.let { "${it} kg" } ?: "Profile ready")
     }
 }
+
+@Composable
+private fun AddFirstPetCard(onClick: () -> Unit) {
+    CareTailCard(modifier = Modifier.width(280.dp), backgroundColor = CareTailWarmSurface) {
+        Text("Add your first pet", style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Create a profile to track reminders, health notes, and records.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = CareTailTextSecondary,
+        )
+        Spacer(Modifier.height(14.dp))
+        PrimaryCoralButton(text = "Add Pet", onClick = onClick)
+    }
+}
+
+private fun petSubtitle(pet: PetEntity): String =
+    listOfNotNull(pet.species, pet.breed).joinToString(" - ")
 
 @Composable
 private fun CareTaskCard(title: String, subtitle: String, complete: Boolean) {
