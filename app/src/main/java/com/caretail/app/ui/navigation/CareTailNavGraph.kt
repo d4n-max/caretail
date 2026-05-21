@@ -13,6 +13,7 @@ import androidx.navigation.navArgument
 import com.caretail.app.data.local.database.AppContainer
 import com.caretail.app.ui.screens.diary.AddDiaryEntryScreen
 import com.caretail.app.ui.screens.diary.HealthDiaryScreen
+import com.caretail.app.ui.screens.documents.AddDocumentScreen
 import com.caretail.app.ui.screens.documents.DocumentsScreen
 import com.caretail.app.ui.screens.home.HomeScreen
 import com.caretail.app.ui.screens.onboarding.OnboardingScreen
@@ -62,6 +63,7 @@ fun CareTailNavGraph(
                 onOpenPetProfile = { petId -> navController.navigate(CareTailRoute.PetProfile.createRoute(petId)) },
                 onAddReminder = { navController.navigate(CareTailRoute.AddReminder.createRoute()) },
                 onAddDiaryEntry = { navController.navigate(CareTailRoute.AddDiaryEntry.createRoute()) },
+                onAddDocument = { navController.navigate(CareTailRoute.AddDocument.createRoute()) },
             )
         }
         composable(CareTailRoute.Pets.route) {
@@ -85,10 +87,12 @@ fun CareTailNavGraph(
                 petRepository = appContainer.petRepository,
                 reminderRepository = appContainer.reminderRepository,
                 healthDiaryRepository = appContainer.healthDiaryRepository,
+                petDocumentRepository = appContainer.petDocumentRepository,
                 petId = petId,
                 onBack = { navController.popBackStack() },
                 onAddReminder = { selectedPetId -> navController.navigate(CareTailRoute.AddReminder.createRoute(selectedPetId)) },
                 onAddDiaryEntry = { selectedPetId -> navController.navigate(CareTailRoute.AddDiaryEntry.createRoute(selectedPetId)) },
+                onAddDocument = { selectedPetId -> navController.navigate(CareTailRoute.AddDocument.createRoute(selectedPetId)) },
             )
         }
         composable(CareTailRoute.AddPet.route) {
@@ -190,6 +194,40 @@ fun CareTailNavGraph(
             DocumentsScreen(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
+                petRepository = appContainer.petRepository,
+                petDocumentRepository = appContainer.petDocumentRepository,
+                onAddDocument = { navController.navigate(CareTailRoute.AddDocument.createRoute()) },
+                onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
+            )
+        }
+        composable(
+            route = CareTailRoute.AddDocument.route,
+            arguments = listOf(
+                navArgument(CareTailRoute.AddDocument.petIdArg) {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                },
+            ),
+        ) { backStackEntry ->
+            val petId = backStackEntry.arguments
+                ?.getLong(CareTailRoute.AddDocument.petIdArg)
+                ?.takeIf { it > 0L }
+            AddDocumentScreen(
+                currentRoute = currentRoute,
+                onNavigate = onBottomNavigate,
+                petRepository = appContainer.petRepository,
+                petDocumentRepository = appContainer.petDocumentRepository,
+                preselectedPetId = petId,
+                onBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.navigate(CareTailRoute.Documents.route) {
+                        popUpTo(CareTailRoute.Home.route) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
             )
         }
         composable(CareTailRoute.Premium.route) {

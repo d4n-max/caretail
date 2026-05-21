@@ -12,6 +12,9 @@ class PetDocumentRepository(
 
     fun observeAllDocuments(): Flow<List<PetDocumentEntity>> = petDocumentDao.observeAllDocuments()
 
+    fun observeRecentDocumentsForPet(petId: Long, limit: Int): Flow<List<PetDocumentEntity>> =
+        petDocumentDao.observeRecentDocumentsForPet(petId, limit)
+
     suspend fun getDocumentById(id: Long): PetDocumentEntity? = petDocumentDao.getDocumentById(id)
 
     suspend fun addDocument(document: PetDocumentEntity): Long = petDocumentDao.insertDocument(document)

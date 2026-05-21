@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.repository.HealthDiaryRepository
+import com.caretail.app.data.repository.PetDocumentRepository
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.ui.components.CareTailCard
@@ -38,6 +39,7 @@ import com.caretail.app.ui.components.SecondaryButton
 import com.caretail.app.ui.components.SectionHeader
 import com.caretail.app.ui.components.StatusPill
 import com.caretail.app.ui.model.HealthDiaryEntryUiModel
+import com.caretail.app.ui.model.PetDocumentUiModel
 import com.caretail.app.ui.model.ReminderUiModel
 import com.caretail.app.ui.navigation.CareTailRoute
 import com.caretail.app.ui.theme.CareTailAccentSoft
@@ -56,13 +58,15 @@ fun PetProfileScreen(
     petRepository: PetRepository,
     reminderRepository: ReminderRepository,
     healthDiaryRepository: HealthDiaryRepository,
+    petDocumentRepository: PetDocumentRepository,
     petId: Long,
     onBack: () -> Unit,
     onAddReminder: (Long) -> Unit,
     onAddDiaryEntry: (Long) -> Unit,
+    onAddDocument: (Long) -> Unit,
 ) {
-    val factory = remember(petRepository, reminderRepository, healthDiaryRepository, petId) {
-        PetProfileViewModelFactory(petRepository, reminderRepository, healthDiaryRepository, petId)
+    val factory = remember(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, petId) {
+        PetProfileViewModelFactory(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, petId)
     }
     val viewModel: PetProfileViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
@@ -94,8 +98,10 @@ fun PetProfileScreen(
                     pet = pet,
                     reminders = uiState.upcomingReminders,
                     diaryEntries = uiState.recentDiaryEntries,
+                    documents = uiState.recentDocuments,
                     onAddReminder = { onAddReminder(pet.id) },
                     onAddDiaryEntry = { onAddDiaryEntry(pet.id) },
+                    onAddDocument = { onAddDocument(pet.id) },
                 )
             }
             Spacer(Modifier.height(20.dp))
@@ -108,8 +114,10 @@ private fun PetProfileContent(
     pet: PetEntity,
     reminders: List<ReminderUiModel>,
     diaryEntries: List<HealthDiaryEntryUiModel>,
+    documents: List<PetDocumentUiModel>,
     onAddReminder: () -> Unit,
     onAddDiaryEntry: () -> Unit,
+    onAddDocument: () -> Unit,
 ) {
     CareTailCard(modifier = Modifier.fillMaxWidth(), backgroundColor = CareTailWarmSurface) {
         Column(
@@ -150,7 +158,7 @@ private fun PetProfileContent(
     Spacer(Modifier.height(12.dp))
     RecentDiarySection(entries = diaryEntries, onAddDiaryEntry = onAddDiaryEntry)
     Spacer(Modifier.height(12.dp))
-    EmptyProfileSection("Documents & Records", "Documents will appear here.", Icons.Rounded.Description)
+    DocumentsSection(documents = documents, onAddDocument = onAddDocument)
 }
 
 @Composable
@@ -180,6 +188,30 @@ private fun UpcomingRemindersSection(
                 )
                 Spacer(Modifier.height(10.dp))
                 StatusPill(reminder.type)
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+    }
+}
+
+@Composable
+private fun DocumentsSection(
+    documents: List<PetDocumentUiModel>,
+    onAddDocument: () -> Unit,
+) {
+    SectionHeader("Documents & Records", icon = Icons.Rounded.Description, actionText = "Add document", onAction = onAddDocument)
+    Spacer(Modifier.height(12.dp))
+    if (documents.isEmpty()) {
+        CareTailCard {
+            Text("Documents will appear here.", style = MaterialTheme.typography.bodyLarge, color = CareTailTextSecondary, fontWeight = FontWeight.Normal)
+        }
+    } else {
+        documents.forEach { document ->
+            CareTailCard {
+                Text(document.title, style = MaterialTheme.typography.titleMedium, color = CareTailTextPrimary)
+                Text(document.createdDateLabel, style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
+                Spacer(Modifier.height(10.dp))
+                StatusPill(document.type)
             }
             Spacer(Modifier.height(10.dp))
         }

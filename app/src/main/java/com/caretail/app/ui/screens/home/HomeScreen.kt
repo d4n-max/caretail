@@ -69,6 +69,7 @@ fun HomeScreen(
     onOpenPetProfile: (Long) -> Unit,
     onAddReminder: () -> Unit,
     onAddDiaryEntry: () -> Unit,
+    onAddDocument: () -> Unit,
 ) {
     val factory = remember(petRepository, reminderRepository, healthDiaryRepository) {
         HomeViewModelFactory(petRepository, reminderRepository, healthDiaryRepository)
@@ -138,7 +139,7 @@ fun HomeScreen(
                 )
                 QuickActionCard("Reminder", ReminderIcon, Modifier.weight(1f), onClick = onAddReminder)
                 QuickActionCard("Log Health", HealthIcon, Modifier.weight(1f), onClick = onAddDiaryEntry)
-                QuickActionCard("Document", DocumentIcon, Modifier.weight(1f), onClick = { onNavigate(CareTailRoute.Settings.route) })
+                QuickActionCard("Document", DocumentIcon, Modifier.weight(1f), onClick = onAddDocument)
             }
             Spacer(Modifier.height(24.dp))
             SectionHeader("Today's Care", icon = Icons.Rounded.Event)

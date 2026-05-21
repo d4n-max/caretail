@@ -17,6 +17,9 @@ interface PetDocumentDao {
     @Query("SELECT * FROM pet_documents ORDER BY createdAtMillis DESC")
     fun observeAllDocuments(): Flow<List<PetDocumentEntity>>
 
+    @Query("SELECT * FROM pet_documents WHERE petId = :petId ORDER BY createdAtMillis DESC LIMIT :limit")
+    fun observeRecentDocumentsForPet(petId: Long, limit: Int): Flow<List<PetDocumentEntity>>
+
     @Query("SELECT * FROM pet_documents WHERE id = :id LIMIT 1")
     suspend fun getDocumentById(id: Long): PetDocumentEntity?
 
