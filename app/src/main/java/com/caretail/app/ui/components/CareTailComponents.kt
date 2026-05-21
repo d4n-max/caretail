@@ -509,6 +509,29 @@ fun PremiumBenefitRow(
 }
 
 @Composable
+fun CareTailBadge(
+    text: String,
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = CareTailAccent,
+    contentColor: Color = Color.White,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(backgroundColor)
+            .padding(horizontal = 10.dp, vertical = 3.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            color = contentColor,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
 fun PricingCard(
     title: String,
     price: String,
@@ -576,21 +599,12 @@ fun PricingCard(
                 }
             }
             if (badge != null) {
-                Box(
+                CareTailBadge(
+                    text = badge,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 8.dp, end = 8.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(CareTailAccent)
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                ) {
-                    Text(
-                        badge,
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
-                    )
-                }
+                        .padding(top = 8.dp, end = 8.dp),
+                )
             }
         }
     }

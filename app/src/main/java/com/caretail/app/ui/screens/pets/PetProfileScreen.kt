@@ -2,12 +2,14 @@ package com.caretail.app.ui.screens.pets
 
 import android.content.Intent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -40,6 +42,7 @@ import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.reminders.ReminderNotificationScheduler
 import com.caretail.app.ui.components.CareTailCard
+import com.caretail.app.ui.components.CareTailBadge
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
 import com.caretail.app.ui.components.PetAvatar
@@ -215,8 +218,8 @@ private fun PetProfileContent(
             Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 PrimaryCoralButton(text = "Edit Profile", modifier = Modifier.weight(1f), onClick = onEditPet)
-                SecondaryButton(
-                    text = if (isPremium) "Export Report" else "Export Report Premium",
+                ExportReportButton(
+                    showPremiumBadge = !isPremium,
                     modifier = Modifier.weight(1f),
                     onClick = onExportReport,
                 )
@@ -231,6 +234,30 @@ private fun PetProfileContent(
     RecentDiarySection(entries = diaryEntries, onAddDiaryEntry = onAddDiaryEntry, onEditDiaryEntry = onEditDiaryEntry)
     Spacer(Modifier.height(12.dp))
     DocumentsSection(documents = documents, onAddDocument = onAddDocument, onEditDocument = onEditDocument)
+}
+
+@Composable
+private fun ExportReportButton(
+    showPremiumBadge: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Box(modifier = modifier) {
+        SecondaryButton(
+            text = "Export Report",
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onClick,
+        )
+        if (showPremiumBadge) {
+            CareTailBadge(
+                text = "Premium",
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(y = (-12).dp)
+                    .padding(end = 8.dp),
+            )
+        }
+    }
 }
 
 @Composable
