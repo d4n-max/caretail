@@ -39,6 +39,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -217,21 +218,32 @@ fun CareTailCard(
 fun PrimaryCoralButton(
     text: String,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    leadingIcon: ImageVector? = null,
     onClick: () -> Unit,
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled && !loading,
         modifier = modifier
             .fillMaxWidth()
-            .height(58.dp),
-        shape = RoundedCornerShape(28.dp),
+            .height(56.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = CareTailAccent,
             contentColor = Color.White,
+            disabledContainerColor = CareTailAccent.copy(alpha = 0.42f),
+            disabledContentColor = Color.White.copy(alpha = 0.9f),
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 5.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp, disabledElevation = 0.dp),
     ) {
-        Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        ButtonContent(
+            text = text,
+            loading = loading,
+            loadingColor = Color.White,
+            leadingIcon = leadingIcon,
+        )
     }
 }
 
@@ -317,21 +329,95 @@ fun ReminderTypeChip(
     text: String,
     selected: Boolean,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    leadingIcon: ImageVector? = null,
     onClick: () -> Unit = {},
 ) {
+    SelectableCareTailChip(
+        text = text,
+        selected = selected,
+        modifier = modifier,
+        enabled = enabled,
+        leadingIcon = leadingIcon,
+        onClick = onClick,
+    )
+}
+
+@Composable
+fun CareTailChip(
+    text: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    leadingIcon: ImageVector? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    val chipModifier = if (onClick != null) {
+        modifier.clickable(enabled = enabled, onClick = onClick)
+    } else {
+        modifier
+    }
     Surface(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = chipModifier,
         shape = RoundedCornerShape(999.dp),
-        color = if (selected) CareTailPrimary else CareTailChipBackground,
-        border = if (selected) BorderStroke(2.dp, CareTailPrimaryDark) else null,
+        color = CareTailChipBackground,
+        contentColor = CareTailTextPrimary,
+        border = BorderStroke(1.dp, CareTailDivider),
     ) {
-        Text(
-            text = text,
+        Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-            color = CareTailTextPrimary,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            if (leadingIcon != null) {
+                Icon(leadingIcon, contentDescription = null, tint = CareTailPrimaryDark, modifier = Modifier.size(16.dp))
+            }
+            Text(
+                text = text,
+                color = if (enabled) CareTailTextPrimary else CareTailTextSecondary.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
+fun SelectableCareTailChip(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    leadingIcon: ImageVector? = null,
+    onClick: () -> Unit = {},
+) {
+    val backgroundColor = if (selected) CareTailPrimary.copy(alpha = 0.24f) else CareTailChipBackground
+    val contentColor = if (selected) CareTailPrimaryDark else CareTailTextPrimary
+    Surface(
+        modifier = modifier.clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(999.dp),
+        color = backgroundColor,
+        contentColor = contentColor,
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = if (selected) CareTailPrimaryDark else CareTailDivider,
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            when {
+                selected -> Icon(Icons.Rounded.Check, contentDescription = null, tint = contentColor, modifier = Modifier.size(16.dp))
+                leadingIcon != null -> Icon(leadingIcon, contentDescription = null, tint = contentColor, modifier = Modifier.size(16.dp))
+            }
+            Text(
+                text = text,
+                color = if (enabled) contentColor else CareTailTextSecondary.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 
@@ -430,36 +516,81 @@ fun PricingCard(
     selected: Boolean,
     modifier: Modifier = Modifier,
     badge: String? = null,
+    onClick: () -> Unit = {},
 ) {
-    Box(modifier = modifier) {
-        CareTailCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(
-                    width = if (selected) 2.dp else 0.dp,
-                    color = if (selected) CareTailPrimaryDark else Color.Transparent,
-                    shape = MaterialTheme.shapes.large,
-                ),
-            backgroundColor = if (selected) CareTailPrimary.copy(alpha = 0.13f) else CareTailCard,
-            contentPadding = 18.dp,
-        ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = CareTailTextSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-            Text(price, style = MaterialTheme.typography.headlineMedium, color = CareTailTextPrimary, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-            if (detail != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(detail, style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-            }
-        }
-        if (badge != null) {
-            Box(
+    Card(
+        modifier = modifier
+            .height(124.dp)
+            .border(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) CareTailPrimary else Color(0xFFE5E7EB),
+                shape = RoundedCornerShape(22.dp),
+            )
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) Color(0xFFE9FAF8) else CareTailCard,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 4.dp else 2.dp),
+        shape = RoundedCornerShape(22.dp),
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .clip(RoundedCornerShape(bottomStart = 18.dp, topEnd = 24.dp))
-                    .background(CareTailAccent)
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                    .fillMaxSize()
+                    .padding(
+                        start = 14.dp,
+                        top = if (badge != null) 34.dp else 16.dp,
+                        end = 14.dp,
+                        bottom = 14.dp,
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
-                Text(badge, color = Color.White, style = MaterialTheme.typography.labelLarge)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = CareTailTextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    price,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = CareTailTextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 1,
+                )
+                if (detail != null) {
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        detail,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CareTailPrimaryDark,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1,
+                    )
+                }
+            }
+            if (badge != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 8.dp, end = 8.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(CareTailAccent)
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                ) {
+                    Text(
+                        badge,
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -533,16 +664,135 @@ fun EmptyStateCard(
 fun SecondaryButton(
     text: String,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    leadingIcon: ImageVector? = null,
+    onClick: () -> Unit,
+) {
+    SecondaryCareTailButton(
+        text = text,
+        modifier = modifier,
+        enabled = enabled,
+        leadingIcon = leadingIcon,
+        onClick = onClick,
+    )
+}
+
+@Composable
+fun SecondaryCareTailButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    leadingIcon: ImageVector? = null,
     onClick: () -> Unit,
 ) {
     OutlinedButton(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier.height(52.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = CareTailAccent),
-        border = BorderStroke(1.dp, CareTailAccent.copy(alpha = 0.4f)),
+        shape = RoundedCornerShape(18.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = CareTailCard,
+            contentColor = CareTailPrimaryDark,
+            disabledContainerColor = CareTailCard,
+            disabledContentColor = CareTailTextSecondary.copy(alpha = 0.65f),
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (enabled) CareTailPrimaryDark.copy(alpha = 0.45f) else CareTailDivider,
+        ),
     ) {
-        Text(text, style = MaterialTheme.typography.titleMedium)
+        ButtonContent(text = text, leadingIcon = leadingIcon)
+    }
+}
+
+@Composable
+fun TextActionButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    leadingIcon: ImageVector? = null,
+    onClick: () -> Unit,
+) {
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.height(48.dp),
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = CareTailPrimaryDark,
+            disabledContentColor = CareTailTextSecondary.copy(alpha = 0.65f),
+        ),
+    ) {
+        ButtonContent(text = text, leadingIcon = leadingIcon)
+    }
+}
+
+@Composable
+fun DestructiveCareTailButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    filled: Boolean = false,
+    leadingIcon: ImageVector? = null,
+    onClick: () -> Unit,
+) {
+    if (filled) {
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CareTailAccent,
+                contentColor = Color.White,
+                disabledContainerColor = CareTailAccent.copy(alpha = 0.36f),
+                disabledContentColor = Color.White.copy(alpha = 0.86f),
+            ),
+        ) {
+            ButtonContent(text = text, leadingIcon = leadingIcon)
+        }
+    } else {
+        TextButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier.height(48.dp),
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = CareTailAccent,
+                disabledContentColor = CareTailTextSecondary.copy(alpha = 0.65f),
+            ),
+        ) {
+            ButtonContent(text = text, leadingIcon = leadingIcon)
+        }
+    }
+}
+
+@Composable
+private fun ButtonContent(
+    text: String,
+    loading: Boolean = false,
+    loadingColor: Color = CareTailPrimaryDark,
+    leadingIcon: ImageVector? = null,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        when {
+            loading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = loadingColor,
+                    strokeWidth = 2.dp,
+                )
+                Spacer(Modifier.width(10.dp))
+            }
+            leadingIcon != null -> {
+                Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+            }
+        }
+        Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }
 }
 

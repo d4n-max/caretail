@@ -333,7 +333,17 @@ fun CareTailNavGraph(
             val reason = PremiumUpsellReason.fromRouteValue(
                 backStackEntry.arguments?.getString(CareTailRoute.Premium.reasonArg),
             )
-            PremiumScreen(reason = reason, onBack = { navController.popBackStack() })
+            PremiumScreen(
+                reason = reason,
+                onBack = { navController.popBackStack() },
+                onMaybeLater = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(CareTailRoute.Home.route) {
+                            launchSingleTop = true
+                        }
+                    }
+                },
+            )
         }
         composable(CareTailRoute.Settings.route) {
             SettingsScreen(
