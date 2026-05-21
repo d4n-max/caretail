@@ -1,5 +1,6 @@
 package com.caretail.app.ui.screens.premium
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,13 +21,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.PremiumBenefitRow
 import com.caretail.app.ui.components.PricingCard
@@ -39,7 +43,11 @@ import com.caretail.app.ui.theme.CareTailTextPrimary
 import com.caretail.app.ui.theme.CareTailTextSecondary
 
 @Composable
-fun PremiumScreen(onBack: () -> Unit) {
+fun PremiumScreen(
+    reason: PremiumUpsellReason?,
+    onBack: () -> Unit,
+) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -79,25 +87,52 @@ fun PremiumScreen(onBack: () -> Unit) {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(28.dp))
+        reason?.let {
+            CareTailCard(modifier = Modifier.fillMaxWidth()) {
+                Text(it.title, style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
+                Spacer(Modifier.height(8.dp))
+                Text(it.message, style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
+            }
+            Spacer(Modifier.height(18.dp))
+        }
         CareTailCard(modifier = Modifier.fillMaxWidth()) {
             PremiumBenefitRow("Unlimited pets")
             Spacer(Modifier.height(18.dp))
-            PremiumBenefitRow("Advanced reminders")
+            PremiumBenefitRow("Unlimited reminders")
             Spacer(Modifier.height(18.dp))
             PremiumBenefitRow("Unlimited health diary")
             Spacer(Modifier.height(18.dp))
             PremiumBenefitRow("Unlimited documents")
             Spacer(Modifier.height(18.dp))
             PremiumBenefitRow("Exportable reports")
+            Spacer(Modifier.height(18.dp))
+            PremiumBenefitRow("Future cloud backup")
         }
         Spacer(Modifier.height(22.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.fillMaxWidth()) {
-            PricingCard("Monthly", "$4.99", selected = false, modifier = Modifier.weight(1f))
-            PricingCard("Yearly", "$29.99", "Only $2.49/mo", selected = true, badge = "Best Value", modifier = Modifier.weight(1f))
+            PricingCard("Monthly", "$4.99/month", selected = false, modifier = Modifier.weight(1f))
+            PricingCard("Yearly", "$29.99/year", selected = true, badge = "Best Value", modifier = Modifier.weight(1f))
         }
         Spacer(Modifier.height(28.dp))
-        PrimaryCoralButton(text = "Start Premium", onClick = {})
-        Spacer(Modifier.height(18.dp))
-        Text("Restore Purchase", style = MaterialTheme.typography.labelLarge, color = CareTailTextSecondary)
+        PrimaryCoralButton(
+            text = "Start Premium",
+            onClick = { Toast.makeText(context, "Billing will be added in a later version.", Toast.LENGTH_SHORT).show() },
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Premium can be toggled from Settings in testing builds.",
+            style = MaterialTheme.typography.bodySmall,
+            color = CareTailTextSecondary,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            TextButton(onClick = onBack) {
+                Text("Maybe later", color = CareTailTextSecondary)
+            }
+            TextButton(onClick = { Toast.makeText(context, "Restore purchase will be added later.", Toast.LENGTH_SHORT).show() }) {
+                Text("Restore purchase", color = CareTailTextSecondary)
+            }
+        }
     }
 }

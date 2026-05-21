@@ -23,6 +23,7 @@ data class HomeUiState(
     val upcomingReminders: List<ReminderUiModel> = emptyList(),
     val latestDiaryEntry: HealthDiaryEntryUiModel? = null,
     val canAddPet: Boolean = true,
+    val isPremium: Boolean = false,
 )
 
 class HomeViewModel(
@@ -34,7 +35,8 @@ class HomeViewModel(
         petRepository.observeAllPets(),
         reminderRepository.observeAllReminders(),
         healthDiaryRepository.observeAllEntries(),
-    ) { pets, reminders, diaryEntries ->
+        PremiumManager.isPremium,
+    ) { pets, reminders, diaryEntries, isPremium ->
             val now = System.currentTimeMillis()
             val activeReminders = mapReminderUiModels(reminders, pets, now)
                 .filter { !it.isCompleted && !it.isOverdue }
@@ -52,6 +54,7 @@ class HomeViewModel(
                     .take(3),
                 latestDiaryEntry = latestDiaryEntry,
                 canAddPet = PremiumManager.canAddPet(pets.size),
+                isPremium = isPremium,
             )
         }
         .stateIn(

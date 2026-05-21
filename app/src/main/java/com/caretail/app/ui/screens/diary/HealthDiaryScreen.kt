@@ -96,6 +96,16 @@ fun HealthDiaryScreen(
             when {
                 !uiState.isLoading && uiState.pets.isEmpty() -> EmptyPetsState(onAddPet = onAddPet)
                 !uiState.isLoading -> {
+                    if (!uiState.isPremium) {
+                        CareTailCard(backgroundColor = CareTailWarmSurface) {
+                            Text(
+                                "Free health notes: ${uiState.totalEntryCount}/${uiState.freeEntryLimit}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = CareTailTextSecondary,
+                            )
+                        }
+                        Spacer(Modifier.height(14.dp))
+                    }
                     Row(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),

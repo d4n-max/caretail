@@ -2,6 +2,8 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.caretail.app.billing.PremiumManager
+import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.local.entities.HealthDiaryEntryEntity
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.repository.HealthDiaryRepository
@@ -30,6 +32,7 @@ data class AddDiaryEntryUiState(
     val success: Boolean = false,
     val validationError: String? = null,
     val generalError: String? = null,
+    val upsellReason: PremiumUpsellReason? = null,
 )
 
 class AddDiaryEntryViewModel(
@@ -101,6 +104,11 @@ class AddDiaryEntryViewModel(
         viewModelScope.launch {
             update { copy(isLoading = true, validationError = null, generalError = null) }
             try {
+                val totalEntryCount = healthDiaryRepository.getEntryCount()
+                if (!PremiumManager.canAddDiaryEntry(totalEntryCount)) {
+                    update { copy(isLoading = false, upsellReason = PremiumUpsellReason.DiaryLimit) }
+                    return@launch
+                }
                 val now = System.currentTimeMillis()
                 healthDiaryRepository.addEntry(
                     HealthDiaryEntryEntity(

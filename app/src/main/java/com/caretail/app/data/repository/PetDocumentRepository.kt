@@ -17,6 +17,8 @@ class PetDocumentRepository(
 
     suspend fun getDocumentById(id: Long): PetDocumentEntity? = petDocumentDao.getDocumentById(id)
 
+    suspend fun getDocumentCount(): Int = petDocumentDao.getDocumentCount()
+
     suspend fun addDocument(document: PetDocumentEntity): Long = petDocumentDao.insertDocument(document)
 
     suspend fun updateDocument(document: PetDocumentEntity) = petDocumentDao.updateDocument(document)

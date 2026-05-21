@@ -23,6 +23,9 @@ interface PetDocumentDao {
     @Query("SELECT * FROM pet_documents WHERE id = :id LIMIT 1")
     suspend fun getDocumentById(id: Long): PetDocumentEntity?
 
+    @Query("SELECT COUNT(*) FROM pet_documents")
+    suspend fun getDocumentCount(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDocument(document: PetDocumentEntity): Long
 

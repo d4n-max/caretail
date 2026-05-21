@@ -23,6 +23,9 @@ interface HealthDiaryDao {
     @Query("SELECT * FROM health_diary_entries WHERE id = :id LIMIT 1")
     suspend fun getEntryById(id: Long): HealthDiaryEntryEntity?
 
+    @Query("SELECT COUNT(*) FROM health_diary_entries")
+    suspend fun getEntryCount(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEntry(entry: HealthDiaryEntryEntity): Long
 

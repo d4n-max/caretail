@@ -112,6 +112,16 @@ fun DocumentsScreen(
             when {
                 !uiState.isLoading && uiState.pets.isEmpty() -> EmptyPetsState(onAddPet)
                 !uiState.isLoading -> {
+                    if (!uiState.isPremium) {
+                        CareTailCard(backgroundColor = CareTailWarmSurface) {
+                            Text(
+                                "Free documents: ${uiState.totalDocumentCount}/${uiState.freeDocumentLimit}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = CareTailTextSecondary,
+                            )
+                        }
+                        Spacer(Modifier.height(14.dp))
+                    }
                     Row(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),

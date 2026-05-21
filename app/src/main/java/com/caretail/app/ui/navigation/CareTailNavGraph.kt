@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.local.database.AppContainer
 import com.caretail.app.ui.screens.diary.AddDiaryEntryScreen
 import com.caretail.app.ui.screens.diary.HealthDiaryScreen
@@ -58,7 +59,7 @@ fun CareTailNavGraph(
                 petRepository = appContainer.petRepository,
                 reminderRepository = appContainer.reminderRepository,
                 healthDiaryRepository = appContainer.healthDiaryRepository,
-                onOpenPremium = { navController.navigate(CareTailRoute.Premium.route) },
+                onOpenPremium = { navController.navigate(CareTailRoute.Premium.createRoute()) },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
                 onOpenPetProfile = { petId -> navController.navigate(CareTailRoute.PetProfile.createRoute(petId)) },
                 onAddReminder = { navController.navigate(CareTailRoute.AddReminder.createRoute()) },
@@ -73,7 +74,7 @@ fun CareTailNavGraph(
                 petRepository = appContainer.petRepository,
                 onOpenPetProfile = { petId -> navController.navigate(CareTailRoute.PetProfile.createRoute(petId)) },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
-                onOpenPremium = { navController.navigate(CareTailRoute.Premium.route) },
+                onOpenPremium = { navController.navigate(CareTailRoute.Premium.createRoute(PremiumUpsellReason.PetLimit)) },
             )
         }
         composable(
@@ -106,7 +107,7 @@ fun CareTailNavGraph(
                         popUpTo(CareTailRoute.Pets.route)
                     }
                 },
-                onOpenPremium = { navController.navigate(CareTailRoute.Premium.route) },
+                onOpenPremium = { navController.navigate(CareTailRoute.Premium.createRoute(PremiumUpsellReason.PetLimit)) },
             )
         }
         composable(CareTailRoute.Reminders.route) {
@@ -148,6 +149,7 @@ fun CareTailNavGraph(
                     }
                 },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
+                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
             )
         }
         composable(CareTailRoute.Diary.route) {
@@ -188,6 +190,7 @@ fun CareTailNavGraph(
                     }
                 },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
+                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
             )
         }
         composable(CareTailRoute.Documents.route) {
@@ -228,16 +231,29 @@ fun CareTailNavGraph(
                     }
                 },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
+                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
             )
         }
-        composable(CareTailRoute.Premium.route) {
-            PremiumScreen(onBack = { navController.popBackStack() })
+        composable(
+            route = CareTailRoute.Premium.route,
+            arguments = listOf(
+                navArgument(CareTailRoute.Premium.reasonArg) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { backStackEntry ->
+            val reason = PremiumUpsellReason.fromRouteValue(
+                backStackEntry.arguments?.getString(CareTailRoute.Premium.reasonArg),
+            )
+            PremiumScreen(reason = reason, onBack = { navController.popBackStack() })
         }
         composable(CareTailRoute.Settings.route) {
             SettingsScreen(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
-                onOpenPremium = { navController.navigate(CareTailRoute.Premium.route) },
+                onOpenPremium = { navController.navigate(CareTailRoute.Premium.createRoute()) },
                 onOpenDocuments = { navController.navigate(CareTailRoute.Documents.route) },
             )
         }

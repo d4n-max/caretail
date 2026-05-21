@@ -17,6 +17,8 @@ class HealthDiaryRepository(
 
     suspend fun getEntryById(id: Long): HealthDiaryEntryEntity? = healthDiaryDao.getEntryById(id)
 
+    suspend fun getEntryCount(): Int = healthDiaryDao.getEntryCount()
+
     suspend fun addEntry(entry: HealthDiaryEntryEntity): Long = healthDiaryDao.insertEntry(entry)
 
     suspend fun updateEntry(entry: HealthDiaryEntryEntity) = healthDiaryDao.updateEntry(entry)

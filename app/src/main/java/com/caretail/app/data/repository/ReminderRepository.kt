@@ -21,6 +21,8 @@ class ReminderRepository(
 
     suspend fun getReminderById(id: Long): ReminderEntity? = reminderDao.getReminderById(id)
 
+    suspend fun getActiveReminderCount(): Int = reminderDao.getActiveReminderCount()
+
     suspend fun addReminder(reminder: ReminderEntity): Long = reminderDao.insertReminder(reminder)
 
     suspend fun updateReminder(reminder: ReminderEntity) = reminderDao.updateReminder(reminder)

@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.repository.PetDocumentRepository
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.ui.components.CareTailCard
@@ -66,6 +67,7 @@ fun AddDocumentScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
     onAddPet: () -> Unit,
+    onOpenPremium: (PremiumUpsellReason) -> Unit,
 ) {
     val context = LocalContext.current
     val factory = remember(petRepository, petDocumentRepository, preselectedPetId) {
@@ -85,6 +87,9 @@ fun AddDocumentScreen(
 
     LaunchedEffect(uiState.success) {
         if (uiState.success) onSaved()
+    }
+    LaunchedEffect(uiState.upsellReason) {
+        uiState.upsellReason?.let(onOpenPremium)
     }
 
     CareTailScaffold(
@@ -131,7 +136,16 @@ fun AddDocumentScreen(
                     Spacer(Modifier.height(10.dp))
                     ChipRows(DocumentTypeValues, uiState.type, viewModel::onTypeSelected)
                     Spacer(Modifier.height(16.dp))
-                    SecondaryButton(text = "Choose file", onClick = { picker.launch(DocumentMimeTypes) })
+                    SecondaryButton(
+                        text = "Choose file",
+                        onClick = {
+                            if (viewModel.isOverFreeDocumentLimit()) {
+                                onOpenPremium(PremiumUpsellReason.DocumentLimit)
+                            } else {
+                                picker.launch(DocumentMimeTypes)
+                            }
+                        },
+                    )
                     uiState.fileName?.let { name ->
                         Spacer(Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

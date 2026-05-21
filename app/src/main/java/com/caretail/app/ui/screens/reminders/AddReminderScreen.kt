@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.reminders.ReminderNotificationScheduler
@@ -61,6 +62,7 @@ fun AddReminderScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
     onAddPet: () -> Unit,
+    onOpenPremium: (PremiumUpsellReason) -> Unit,
 ) {
     val factory = remember(petRepository, reminderRepository, preselectedPetId) {
         AddReminderViewModelFactory(petRepository, reminderRepository, reminderNotificationScheduler, preselectedPetId)
@@ -94,6 +96,9 @@ fun AddReminderScreen(
             uiState.successMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
             onSaved()
         }
+    }
+    LaunchedEffect(uiState.upsellReason) {
+        uiState.upsellReason?.let(onOpenPremium)
     }
 
     CareTailScaffold(

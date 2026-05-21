@@ -29,6 +29,9 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE id = :id LIMIT 1")
     suspend fun getReminderById(id: Long): ReminderEntity?
 
+    @Query("SELECT COUNT(*) FROM reminders WHERE isCompleted = 0")
+    suspend fun getActiveReminderCount(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReminder(reminder: ReminderEntity): Long
 

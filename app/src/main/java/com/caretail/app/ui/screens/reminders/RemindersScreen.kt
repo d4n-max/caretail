@@ -85,6 +85,10 @@ fun RemindersScreen(
             if (!uiState.isLoading && !uiState.hasAnyReminder) {
                 EmptyRemindersState(onAddReminder = onAddReminder)
             } else {
+                if (!uiState.isPremium) {
+                    LimitIndicator("Free reminders: ${uiState.activeReminderCount}/${uiState.freeActiveReminderLimit} active")
+                    Spacer(Modifier.height(14.dp))
+                }
                 ReminderSection(
                     title = "Overdue",
                     reminders = uiState.overdue,
@@ -116,6 +120,13 @@ fun RemindersScreen(
             }
             Spacer(Modifier.height(90.dp))
         }
+    }
+}
+
+@Composable
+private fun LimitIndicator(text: String) {
+    CareTailCard(backgroundColor = CareTailWarmSurface) {
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
     }
 }
 

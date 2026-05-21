@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.ui.components.CareTailCard
@@ -59,6 +60,7 @@ fun AddDiaryEntryScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
     onAddPet: () -> Unit,
+    onOpenPremium: (PremiumUpsellReason) -> Unit,
 ) {
     val factory = remember(petRepository, healthDiaryRepository, preselectedPetId) {
         AddDiaryEntryViewModelFactory(petRepository, healthDiaryRepository, preselectedPetId)
@@ -71,6 +73,9 @@ fun AddDiaryEntryScreen(
         if (uiState.success) {
             onSaved()
         }
+    }
+    LaunchedEffect(uiState.upsellReason) {
+        uiState.upsellReason?.let(onOpenPremium)
     }
 
     CareTailScaffold(

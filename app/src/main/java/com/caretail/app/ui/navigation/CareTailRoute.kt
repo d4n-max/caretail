@@ -24,7 +24,11 @@ sealed class CareTailRoute(val route: String, val label: String) {
         const val petIdArg = "petId"
         fun createRoute(petId: Long? = null): String = petId?.let { "add_document?petId=$it" } ?: "add_document"
     }
-    data object Premium : CareTailRoute("premium", "Premium")
+    data object Premium : CareTailRoute("premium?reason={reason}", "Premium") {
+        const val reasonArg = "reason"
+        fun createRoute(reason: com.caretail.app.billing.PremiumUpsellReason? = null): String =
+            reason?.let { "premium?reason=${it.routeValue}" } ?: "premium"
+    }
     data object Settings : CareTailRoute("settings", "Settings")
 }
 

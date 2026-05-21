@@ -2,6 +2,8 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.caretail.app.billing.PremiumLimits
+import com.caretail.app.billing.PremiumManager
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.reminders.ReminderNotificationScheduler
@@ -20,6 +22,9 @@ data class RemindersUiState(
     val upcoming: List<ReminderUiModel> = emptyList(),
     val completed: List<ReminderUiModel> = emptyList(),
     val isLoading: Boolean = true,
+    val isPremium: Boolean = false,
+    val activeReminderCount: Int = 0,
+    val freeActiveReminderLimit: Int = PremiumLimits.FREE_ACTIVE_REMINDER_LIMIT,
     val generalError: String? = null,
 ) {
     val hasAnyReminder: Boolean
@@ -34,15 +39,19 @@ class RemindersViewModel(
     val uiState: StateFlow<RemindersUiState> = combine(
         reminderRepository.observeAllReminders(),
         petRepository.observeAllPets(),
-    ) { reminders, pets ->
+        PremiumManager.isPremium,
+    ) { reminders, pets, isPremium ->
         val now = System.currentTimeMillis()
         val models = mapReminderUiModels(reminders, pets, now)
+        val activeReminderCount = models.count { !it.isCompleted }
         RemindersUiState(
             overdue = models.filter { it.isOverdue }.sortedBy { it.dueAtMillis },
             today = models.filter { !it.isCompleted && !it.isOverdue && isToday(it.dueAtMillis, now) }.sortedBy { it.dueAtMillis },
             upcoming = models.filter { !it.isCompleted && !it.isOverdue && !isToday(it.dueAtMillis, now) }.sortedBy { it.dueAtMillis },
             completed = models.filter { it.isCompleted }.sortedByDescending { it.dueAtMillis },
             isLoading = false,
+            isPremium = isPremium,
+            activeReminderCount = activeReminderCount,
         )
     }.stateIn(
         scope = viewModelScope,

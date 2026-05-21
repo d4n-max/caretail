@@ -2,6 +2,8 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.caretail.app.billing.PremiumManager
+import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.local.entities.ReminderEntity
 import com.caretail.app.data.repository.PetRepository
@@ -34,6 +36,7 @@ data class AddReminderUiState(
     val successMessage: String? = null,
     val validationError: String? = null,
     val generalError: String? = null,
+    val upsellReason: PremiumUpsellReason? = null,
 )
 
 class AddReminderViewModel(
@@ -75,7 +78,7 @@ class AddReminderViewModel(
 
     fun onTimeChanged(value: String) = update { copy(time = value, validationError = null, generalError = null) }
 
-    fun onRepeatTypeSelected(value: String) = update { copy(repeatType = value, validationError = null, generalError = null) }
+    fun onRepeatTypeSelected(value: String) = update { copy(repeatType = value, validationError = null, generalError = null, upsellReason = null) }
 
     fun onNotesChanged(value: String) = update { copy(notes = value) }
 
@@ -88,6 +91,15 @@ class AddReminderViewModel(
         viewModelScope.launch {
             update { copy(isLoading = true, validationError = null, generalError = null) }
             try {
+                val activeReminderCount = reminderRepository.getActiveReminderCount()
+                if (!PremiumManager.canAddReminder(activeReminderCount)) {
+                    update { copy(isLoading = false, upsellReason = PremiumUpsellReason.ReminderLimit) }
+                    return@launch
+                }
+                if (state.repeatType in listOf("Monthly", "Yearly") && !PremiumManager.canUseAdvancedRecurringReminders()) {
+                    update { copy(isLoading = false, upsellReason = PremiumUpsellReason.AdvancedRepeatLocked) }
+                    return@launch
+                }
                 val now = System.currentTimeMillis()
                 val reminder = ReminderEntity(
                     petId = validated.petId,
