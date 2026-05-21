@@ -1,5 +1,11 @@
 package com.caretail.app.ui.screens.reminders
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,10 +27,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
+import com.caretail.app.reminders.ReminderNotificationScheduler
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
@@ -47,21 +56,42 @@ fun AddReminderScreen(
     onNavigate: (String) -> Unit,
     petRepository: PetRepository,
     reminderRepository: ReminderRepository,
+    reminderNotificationScheduler: ReminderNotificationScheduler,
     preselectedPetId: Long?,
     onBack: () -> Unit,
     onSaved: () -> Unit,
     onAddPet: () -> Unit,
 ) {
     val factory = remember(petRepository, reminderRepository, preselectedPetId) {
-        AddReminderViewModelFactory(petRepository, reminderRepository, preselectedPetId)
+        AddReminderViewModelFactory(petRepository, reminderRepository, reminderNotificationScheduler, preselectedPetId)
     }
     val viewModel: AddReminderViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     val textFieldColors = careTailOutlinedTextFieldColors()
     val validationMessage = uiState.validationError.orEmpty()
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        viewModel.saveReminder(notificationPermissionGranted = granted)
+    }
+
+    fun hasNotificationPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+    fun saveWithNotificationPermissionCheck() {
+        if (!viewModel.validateBeforePermissionRequest()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission()) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.saveReminder(notificationPermissionGranted = true)
+        }
+    }
 
     LaunchedEffect(uiState.success) {
         if (uiState.success) {
+            uiState.successMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
             onSaved()
         }
     }
@@ -170,7 +200,7 @@ fun AddReminderScreen(
                 Spacer(Modifier.height(24.dp))
                 PrimaryCoralButton(
                     text = if (uiState.isLoading) "Saving..." else "Save Reminder",
-                    onClick = viewModel::saveReminder,
+                    onClick = ::saveWithNotificationPermissionCheck,
                 )
             }
             Spacer(Modifier.height(24.dp))

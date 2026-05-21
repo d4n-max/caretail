@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
+import com.caretail.app.reminders.ReminderNotificationScheduler
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
@@ -58,11 +59,12 @@ fun RemindersScreen(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     reminderRepository: ReminderRepository,
+    reminderNotificationScheduler: ReminderNotificationScheduler,
     petRepository: PetRepository,
     onAddReminder: () -> Unit,
 ) {
     val factory = remember(reminderRepository, petRepository) {
-        RemindersViewModelFactory(reminderRepository, petRepository)
+        RemindersViewModelFactory(reminderRepository, reminderNotificationScheduler, petRepository)
     }
     val viewModel: RemindersViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
@@ -108,7 +110,7 @@ fun RemindersScreen(
                     title = "Completed",
                     reminders = uiState.completed,
                     emptyText = null,
-                    onToggle = { viewModel.markIncomplete(it.id) },
+                    onToggle = viewModel::markIncomplete,
                     onDelete = viewModel::deleteReminder,
                 )
             }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
+import com.caretail.app.reminders.ReminderNotificationScheduler
 import com.caretail.app.ui.model.ReminderUiModel
 import com.caretail.app.ui.model.mapReminderUiModels
 import com.caretail.app.util.isToday
@@ -27,6 +28,7 @@ data class RemindersUiState(
 
 class RemindersViewModel(
     private val reminderRepository: ReminderRepository,
+    private val reminderNotificationScheduler: ReminderNotificationScheduler,
     petRepository: PetRepository,
 ) : ViewModel() {
     val uiState: StateFlow<RemindersUiState> = combine(
@@ -51,17 +53,24 @@ class RemindersViewModel(
     fun markCompleted(reminderId: Long) {
         viewModelScope.launch {
             reminderRepository.markReminderCompleted(reminderId, System.currentTimeMillis())
+            reminderNotificationScheduler.cancelReminder(reminderId)
         }
     }
 
-    fun markIncomplete(reminderId: Long) {
+    fun markIncomplete(reminder: ReminderUiModel) {
         viewModelScope.launch {
-            reminderRepository.markReminderIncomplete(reminderId, System.currentTimeMillis())
+            reminderRepository.markReminderIncomplete(reminder.id, System.currentTimeMillis())
+            reminderRepository.getReminderById(reminder.id)?.let { entity ->
+                if (entity.dueAtMillis > System.currentTimeMillis()) {
+                    reminderNotificationScheduler.rescheduleReminder(entity, reminder.petName)
+                }
+            }
         }
     }
 
     fun deleteReminder(reminder: ReminderUiModel) {
         viewModelScope.launch {
+            reminderNotificationScheduler.cancelReminder(reminder.id)
             reminderRepository.getReminderById(reminder.id)?.let { reminderRepository.deleteReminder(it) }
         }
     }

@@ -6,6 +6,7 @@ import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.local.entities.ReminderEntity
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
+import com.caretail.app.reminders.ReminderNotificationScheduler
 import com.caretail.app.util.defaultReminderDueAtMillis
 import com.caretail.app.util.formatInputDate
 import com.caretail.app.util.formatInputTime
@@ -30,6 +31,7 @@ data class AddReminderUiState(
     val notes: String = "",
     val isLoading: Boolean = true,
     val success: Boolean = false,
+    val successMessage: String? = null,
     val validationError: String? = null,
     val generalError: String? = null,
 )
@@ -37,6 +39,7 @@ data class AddReminderUiState(
 class AddReminderViewModel(
     private val petRepository: PetRepository,
     private val reminderRepository: ReminderRepository,
+    private val reminderNotificationScheduler: ReminderNotificationScheduler,
     private val preselectedPetId: Long? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddReminderUiState())
@@ -76,55 +79,74 @@ class AddReminderViewModel(
 
     fun onNotesChanged(value: String) = update { copy(notes = value) }
 
-    fun saveReminder() {
+    fun validateBeforePermissionRequest(): Boolean = validate(uiState.value) != null
+
+    fun saveReminder(notificationPermissionGranted: Boolean) {
         val state = uiState.value
-        val petId = state.selectedPetId
-        val dueAtMillis = parseDateTimeMillis(state.date, state.time)
-        when {
-            state.pets.isEmpty() -> {
-                update { copy(validationError = "Add a pet before creating a reminder.") }
-                return
-            }
-            petId == null -> {
-                update { copy(validationError = "Choose a pet.") }
-                return
-            }
-            state.title.trim().isBlank() -> {
-                update { copy(validationError = "Reminder title is required.") }
-                return
-            }
-            state.type !in ReminderTypes -> {
-                update { copy(validationError = "Choose a reminder type.") }
-                return
-            }
-            dueAtMillis == null -> {
-                update { copy(validationError = "Use date as YYYY-MM-DD and time as HH:mm.") }
-                return
-            }
-        }
+        val validated = validate(state) ?: return
 
         viewModelScope.launch {
             update { copy(isLoading = true, validationError = null, generalError = null) }
             try {
                 val now = System.currentTimeMillis()
-                reminderRepository.addReminder(
-                    ReminderEntity(
-                        petId = petId,
-                        title = state.title.trim(),
-                        type = state.type,
-                        notes = state.notes.trim().ifBlank { null },
-                        dueAtMillis = dueAtMillis,
-                        repeatType = state.repeatType,
-                        isCompleted = false,
-                        completedAtMillis = null,
-                        createdAtMillis = now,
-                        updatedAtMillis = now,
-                    ),
+                val reminder = ReminderEntity(
+                    petId = validated.petId,
+                    title = state.title.trim(),
+                    type = state.type,
+                    notes = state.notes.trim().ifBlank { null },
+                    dueAtMillis = validated.dueAtMillis,
+                    repeatType = state.repeatType,
+                    isCompleted = false,
+                    completedAtMillis = null,
+                    createdAtMillis = now,
+                    updatedAtMillis = now,
                 )
-                update { copy(isLoading = false, success = true) }
+                val reminderId = reminderRepository.addReminder(reminder)
+                val savedReminder = reminder.copy(id = reminderId)
+                val petName = state.pets.firstOrNull { it.id == validated.petId }?.name.orEmpty()
+                reminderNotificationScheduler.scheduleReminder(savedReminder, petName)
+                update {
+                    copy(
+                        isLoading = false,
+                        success = true,
+                        successMessage = if (notificationPermissionGranted) {
+                            "Reminder saved."
+                        } else {
+                            "Reminder saved. Notifications are disabled."
+                        },
+                    )
+                }
             } catch (error: Exception) {
                 update { copy(isLoading = false, generalError = error.message ?: "Unable to save reminder.") }
             }
+        }
+    }
+
+    private fun validate(state: AddReminderUiState): ValidReminderForm? {
+        val petId = state.selectedPetId
+        val dueAtMillis = parseDateTimeMillis(state.date, state.time)
+        return when {
+            state.pets.isEmpty() -> {
+                update { copy(validationError = "Add a pet before creating a reminder.") }
+                null
+            }
+            petId == null -> {
+                update { copy(validationError = "Choose a pet.") }
+                null
+            }
+            state.title.trim().isBlank() -> {
+                update { copy(validationError = "Reminder title is required.") }
+                null
+            }
+            state.type !in ReminderTypes -> {
+                update { copy(validationError = "Choose a reminder type.") }
+                null
+            }
+            dueAtMillis == null -> {
+                update { copy(validationError = "Use date as YYYY-MM-DD and time as HH:mm.") }
+                null
+            }
+            else -> ValidReminderForm(petId = petId, dueAtMillis = dueAtMillis)
         }
     }
 
@@ -132,3 +154,8 @@ class AddReminderViewModel(
         _uiState.update(block)
     }
 }
+
+private data class ValidReminderForm(
+    val petId: Long,
+    val dueAtMillis: Long,
+)

@@ -106,6 +106,7 @@ fun CareTailNavGraph(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
                 reminderRepository = appContainer.reminderRepository,
+                reminderNotificationScheduler = appContainer.reminderNotificationScheduler,
                 petRepository = appContainer.petRepository,
                 onAddReminder = { navController.navigate(CareTailRoute.AddReminder.createRoute()) },
             )
@@ -127,6 +128,7 @@ fun CareTailNavGraph(
                 onNavigate = onBottomNavigate,
                 petRepository = appContainer.petRepository,
                 reminderRepository = appContainer.reminderRepository,
+                reminderNotificationScheduler = appContainer.reminderNotificationScheduler,
                 preselectedPetId = petId,
                 onBack = { navController.popBackStack() },
                 onSaved = {
