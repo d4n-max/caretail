@@ -30,5 +30,6 @@ class ReminderRepository(
     suspend fun markReminderCompleted(id: Long, completedAtMillis: Long) =
         reminderDao.markReminderCompleted(id, completedAtMillis)
 
-    suspend fun markReminderIncomplete(id: Long) = reminderDao.markReminderIncomplete(id)
+    suspend fun markReminderIncomplete(id: Long, updatedAtMillis: Long) =
+        reminderDao.markReminderIncomplete(id, updatedAtMillis)
 }

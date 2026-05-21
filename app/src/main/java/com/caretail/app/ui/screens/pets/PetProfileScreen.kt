@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.repository.PetRepository
+import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
@@ -35,6 +36,7 @@ import com.caretail.app.ui.components.PrimaryCoralButton
 import com.caretail.app.ui.components.SecondaryButton
 import com.caretail.app.ui.components.SectionHeader
 import com.caretail.app.ui.components.StatusPill
+import com.caretail.app.ui.model.ReminderUiModel
 import com.caretail.app.ui.navigation.CareTailRoute
 import com.caretail.app.ui.theme.CareTailAccentSoft
 import com.caretail.app.ui.theme.CareTailPrimary
@@ -50,10 +52,14 @@ fun PetProfileScreen(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     petRepository: PetRepository,
+    reminderRepository: ReminderRepository,
     petId: Long,
     onBack: () -> Unit,
+    onAddReminder: (Long) -> Unit,
 ) {
-    val factory = remember(petRepository, petId) { PetProfileViewModelFactory(petRepository, petId) }
+    val factory = remember(petRepository, reminderRepository, petId) {
+        PetProfileViewModelFactory(petRepository, reminderRepository, petId)
+    }
     val viewModel: PetProfileViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
     val pet = uiState.pet
@@ -80,7 +86,11 @@ fun PetProfileScreen(
             when {
                 uiState.isLoading -> Text("Loading pet...", style = MaterialTheme.typography.bodyLarge)
                 pet == null -> MissingPetCard(onBack = onBack)
-                else -> PetProfileContent(pet = pet)
+                else -> PetProfileContent(
+                    pet = pet,
+                    reminders = uiState.upcomingReminders,
+                    onAddReminder = { onAddReminder(pet.id) },
+                )
             }
             Spacer(Modifier.height(20.dp))
         }
@@ -88,7 +98,11 @@ fun PetProfileScreen(
 }
 
 @Composable
-private fun PetProfileContent(pet: PetEntity) {
+private fun PetProfileContent(
+    pet: PetEntity,
+    reminders: List<ReminderUiModel>,
+    onAddReminder: () -> Unit,
+) {
     CareTailCard(modifier = Modifier.fillMaxWidth(), backgroundColor = CareTailWarmSurface) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -124,11 +138,44 @@ private fun PetProfileContent(pet: PetEntity) {
         }
     }
     Spacer(Modifier.height(22.dp))
-    EmptyProfileSection("Upcoming Reminders", "Reminders will appear here.", Icons.Rounded.Event)
+    UpcomingRemindersSection(reminders = reminders, onAddReminder = onAddReminder)
     Spacer(Modifier.height(12.dp))
     EmptyProfileSection("Recent Health Diary", "Health notes will appear here.", Icons.Rounded.Favorite)
     Spacer(Modifier.height(12.dp))
     EmptyProfileSection("Documents & Records", "Documents will appear here.", Icons.Rounded.Description)
+}
+
+@Composable
+private fun UpcomingRemindersSection(
+    reminders: List<ReminderUiModel>,
+    onAddReminder: () -> Unit,
+) {
+    SectionHeader("Upcoming Reminders", icon = Icons.Rounded.Event, actionText = "Add", onAction = onAddReminder)
+    Spacer(Modifier.height(12.dp))
+    if (reminders.isEmpty()) {
+        CareTailCard {
+            Text(
+                "Reminders will appear here.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = CareTailTextSecondary,
+                fontWeight = FontWeight.Normal,
+            )
+        }
+    } else {
+        reminders.forEach { reminder ->
+            CareTailCard {
+                Text(reminder.title, style = MaterialTheme.typography.titleMedium, color = CareTailTextPrimary)
+                Text(
+                    "${reminder.dueDateLabel} at ${reminder.dueTimeLabel}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = CareTailTextSecondary,
+                )
+                Spacer(Modifier.height(10.dp))
+                StatusPill(reminder.type)
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+    }
 }
 
 @Composable

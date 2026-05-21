@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.repository.PetRepository
+import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.ui.components.AddPetIcon
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
@@ -41,6 +42,7 @@ import com.caretail.app.ui.components.QuickActionCard
 import com.caretail.app.ui.components.ReminderIcon
 import com.caretail.app.ui.components.SectionHeader
 import com.caretail.app.ui.components.StatusPill
+import com.caretail.app.ui.model.ReminderUiModel
 import com.caretail.app.ui.navigation.CareTailRoute
 import com.caretail.app.ui.theme.CareTailAccent
 import com.caretail.app.ui.theme.CareTailAccentSoft
@@ -58,12 +60,13 @@ fun HomeScreen(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     petRepository: PetRepository,
+    reminderRepository: ReminderRepository,
     onOpenPremium: () -> Unit,
     onAddPet: () -> Unit,
     onOpenPetProfile: (Long) -> Unit,
     onAddReminder: () -> Unit,
 ) {
-    val factory = remember(petRepository) { HomeViewModelFactory(petRepository) }
+    val factory = remember(petRepository, reminderRepository) { HomeViewModelFactory(petRepository, reminderRepository) }
     val viewModel: HomeViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
 
@@ -134,15 +137,25 @@ fun HomeScreen(
             Spacer(Modifier.height(24.dp))
             SectionHeader("Today's Care", icon = Icons.Rounded.Event)
             Spacer(Modifier.height(12.dp))
-            CareTaskCard("Heartworm Meds", "Max - 8:00 PM", true)
-            Spacer(Modifier.height(10.dp))
-            CareTaskCard("Evening Walk", "Max - 5:00 PM", false)
+            if (uiState.todayReminders.isEmpty()) {
+                EmptySmallCard("No care due today")
+            } else {
+                uiState.todayReminders.forEach { reminder ->
+                    CareTaskCard(reminder)
+                    Spacer(Modifier.height(10.dp))
+                }
+            }
             Spacer(Modifier.height(24.dp))
             SectionHeader("Upcoming")
             Spacer(Modifier.height(12.dp))
-            UpcomingCard("Rabies Booster", "Luna - tomorrow at 10:00 AM")
-            Spacer(Modifier.height(10.dp))
-            UpcomingCard("Grooming Session", "Max - Oct 12")
+            if (uiState.upcomingReminders.isEmpty()) {
+                EmptySmallCard("No upcoming reminders")
+            } else {
+                uiState.upcomingReminders.forEach { reminder ->
+                    UpcomingCard(reminder)
+                    Spacer(Modifier.height(10.dp))
+                }
+            }
             Spacer(Modifier.height(18.dp))
             CareTailCard(backgroundColor = CareTailWarmSurface) {
                 Text("CareTail Premium", style = MaterialTheme.typography.titleLarge, color = CareTailPrimaryDark)
@@ -198,17 +211,17 @@ private fun petSubtitle(pet: PetEntity): String =
     listOfNotNull(pet.species, pet.breed).joinToString(" - ")
 
 @Composable
-private fun CareTaskCard(title: String, subtitle: String, complete: Boolean) {
+private fun CareTaskCard(reminder: ReminderUiModel) {
     CareTailCard(backgroundColor = CareTailCardColor) {
         InfoRow(
-            title = title,
-            subtitle = subtitle,
+            title = reminder.title,
+            subtitle = "${reminder.petName} - ${reminder.dueTimeLabel}",
             icon = Icons.Rounded.AccessTime,
             trailing = {
                 StatusPill(
-                    text = if (complete) "Done" else "Due",
-                    backgroundColor = if (complete) CareTailPrimary.copy(alpha = 0.18f) else CareTailAccentSoft,
-                    contentColor = if (complete) CareTailPrimaryDark else CareTailAccent,
+                    text = reminder.type,
+                    backgroundColor = CareTailAccentSoft,
+                    contentColor = CareTailAccent,
                 )
             },
         )
@@ -216,9 +229,20 @@ private fun CareTaskCard(title: String, subtitle: String, complete: Boolean) {
 }
 
 @Composable
-private fun UpcomingCard(title: String, subtitle: String) {
+private fun UpcomingCard(reminder: ReminderUiModel) {
     CareTailCard {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = CareTailTextPrimary, fontWeight = FontWeight.SemiBold)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
+        Text(reminder.title, style = MaterialTheme.typography.titleMedium, color = CareTailTextPrimary, fontWeight = FontWeight.SemiBold)
+        Text(
+            "${reminder.petName} - ${reminder.dueDateLabel} at ${reminder.dueTimeLabel}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = CareTailTextSecondary,
+        )
+    }
+}
+
+@Composable
+private fun EmptySmallCard(message: String) {
+    CareTailCard {
+        Text(message, style = MaterialTheme.typography.bodyLarge, color = CareTailTextSecondary)
     }
 }

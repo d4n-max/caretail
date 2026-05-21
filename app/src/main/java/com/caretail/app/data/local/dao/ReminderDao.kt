@@ -41,6 +41,6 @@ interface ReminderDao {
     @Query("UPDATE reminders SET isCompleted = 1, completedAtMillis = :completedAtMillis, updatedAtMillis = :completedAtMillis WHERE id = :id")
     suspend fun markReminderCompleted(id: Long, completedAtMillis: Long)
 
-    @Query("UPDATE reminders SET isCompleted = 0, completedAtMillis = NULL WHERE id = :id")
-    suspend fun markReminderIncomplete(id: Long)
+    @Query("UPDATE reminders SET isCompleted = 0, completedAtMillis = NULL, updatedAtMillis = :updatedAtMillis WHERE id = :id")
+    suspend fun markReminderIncomplete(id: Long, updatedAtMillis: Long)
 }

@@ -1,5 +1,6 @@
 package com.caretail.app.ui.screens.reminders
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,37 +11,66 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Notes
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.data.repository.PetRepository
+import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
-import com.caretail.app.ui.components.InfoRow
 import com.caretail.app.ui.components.PrimaryCoralButton
 import com.caretail.app.ui.components.ReminderTypeChip
 import com.caretail.app.ui.components.SectionHeader
+import com.caretail.app.ui.components.careTailOutlinedTextFieldColors
 import com.caretail.app.ui.navigation.CareTailRoute
+import com.caretail.app.ui.theme.CareTailAccent
 import com.caretail.app.ui.theme.CareTailTextSecondary
+import com.caretail.app.ui.theme.CareTailWarmSurface
+import com.caretail.app.ui.viewmodel.AddReminderViewModel
+import com.caretail.app.ui.viewmodel.AddReminderViewModelFactory
+import com.caretail.app.ui.viewmodel.ReminderTypes
+import com.caretail.app.ui.viewmodel.RepeatTypes
 
 @Composable
 fun AddReminderScreen(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
+    petRepository: PetRepository,
+    reminderRepository: ReminderRepository,
+    preselectedPetId: Long?,
     onBack: () -> Unit,
+    onSaved: () -> Unit,
+    onAddPet: () -> Unit,
 ) {
+    val factory = remember(petRepository, reminderRepository, preselectedPetId) {
+        AddReminderViewModelFactory(petRepository, reminderRepository, preselectedPetId)
+    }
+    val viewModel: AddReminderViewModel = viewModel(factory = factory)
+    val uiState by viewModel.uiState.collectAsState()
+    val textFieldColors = careTailOutlinedTextFieldColors()
+    val validationMessage = uiState.validationError.orEmpty()
+
+    LaunchedEffect(uiState.success) {
+        if (uiState.success) {
+            onSaved()
+        }
+    }
+
     CareTailScaffold(
         currentRoute = currentRoute,
         onNavigate = onNavigate,
         selectedBottomRoute = CareTailRoute.Reminders.route,
-        topBar = { CareTailTopBar(title = "Add New Reminder", showBack = true, onBack = onBack) },
+        topBar = { CareTailTopBar(title = "Add Reminder", showBack = true, onBack = onBack) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -48,50 +78,138 @@ fun AddReminderScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
         ) {
-            SectionHeader("Who is this for?")
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ReminderTypeChip("Luna", selected = true)
-                ReminderTypeChip("Max", selected = false)
-            }
-            Spacer(Modifier.height(26.dp))
-            SectionHeader("What type of reminder?")
-            Spacer(Modifier.height(12.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ReminderTypeChip("Vaccine", selected = true)
-                    ReminderTypeChip("Medication", selected = false)
-                    ReminderTypeChip("Vet Visit", selected = false)
+            if (!uiState.isLoading && uiState.pets.isEmpty()) {
+                EmptyPetsState(onAddPet = onAddPet)
+            } else {
+                SectionHeader("Who is this for?")
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    uiState.pets.forEach { pet ->
+                        ReminderTypeChip(
+                            text = pet.name,
+                            selected = uiState.selectedPetId == pet.id,
+                            onClick = { viewModel.onPetSelected(pet.id) },
+                        )
+                    }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ReminderTypeChip("Grooming", selected = false)
-                    ReminderTypeChip("Food", selected = false)
-                    ReminderTypeChip("Other", selected = false)
+                Spacer(Modifier.height(20.dp))
+                CareTailCard {
+                    OutlinedTextField(
+                        value = uiState.title,
+                        onValueChange = viewModel::onTitleChanged,
+                        label = { Text("Title *") },
+                        placeholder = { Text("Rabies booster, heartworm meds...") },
+                        singleLine = true,
+                        isError = validationMessage.contains("title", ignoreCase = true),
+                        colors = textFieldColors,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text("Reminder type *", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(10.dp))
+                    ReminderChipRows(
+                        values = ReminderTypes,
+                        selectedValue = uiState.type,
+                        onSelected = viewModel::onTypeSelected,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = uiState.date,
+                            onValueChange = viewModel::onDateChanged,
+                            label = { Text("Date *") },
+                            placeholder = { Text("YYYY-MM-DD") },
+                            singleLine = true,
+                            isError = validationMessage.contains("date", ignoreCase = true),
+                            colors = textFieldColors,
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedTextField(
+                            value = uiState.time,
+                            onValueChange = viewModel::onTimeChanged,
+                            label = { Text("Time *") },
+                            placeholder = { Text("HH:mm") },
+                            singleLine = true,
+                            isError = validationMessage.contains("time", ignoreCase = true),
+                            colors = textFieldColors,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Text("Repeat", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(10.dp))
+                    ReminderChipRows(
+                        values = RepeatTypes,
+                        selectedValue = uiState.repeatType,
+                        onSelected = viewModel::onRepeatTypeSelected,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = uiState.notes,
+                        onValueChange = viewModel::onNotesChanged,
+                        label = { Text("Notes") },
+                        placeholder = { Text("Add any details here...", color = CareTailTextSecondary) },
+                        leadingIcon = { androidx.compose.material3.Icon(Icons.Rounded.Notes, contentDescription = null) },
+                        colors = textFieldColors,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                    )
                 }
+                uiState.validationError?.let { message ->
+                    Spacer(Modifier.height(12.dp))
+                    Text(message, color = CareTailAccent, style = MaterialTheme.typography.bodyMedium)
+                }
+                uiState.generalError?.let { message ->
+                    Spacer(Modifier.height(12.dp))
+                    Text(message, color = CareTailAccent, style = MaterialTheme.typography.bodyMedium)
+                }
+                Spacer(Modifier.height(24.dp))
+                PrimaryCoralButton(
+                    text = if (uiState.isLoading) "Saving..." else "Save Reminder",
+                    onClick = viewModel::saveReminder,
+                )
             }
-            Spacer(Modifier.height(26.dp))
-            CareTailCard {
-                InfoRow("Date", "Oct 24, 2026", Icons.Rounded.CalendarToday)
-                Spacer(Modifier.height(16.dp))
-                InfoRow("Time", "09:00 AM", Icons.Rounded.Schedule)
-                Spacer(Modifier.height(16.dp))
-                InfoRow("Repeat", "Never", Icons.Rounded.Repeat)
-            }
-            Spacer(Modifier.height(18.dp))
-            Text("Notes", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = "",
-                onValueChange = {},
-                placeholder = { Text("Add any details here...", color = CareTailTextSecondary) },
-                leadingIcon = { androidx.compose.material3.Icon(Icons.Rounded.Notes, contentDescription = null) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-            )
             Spacer(Modifier.height(24.dp))
-            PrimaryCoralButton(text = "Save Reminder", onClick = onBack)
-            Spacer(Modifier.height(18.dp))
+        }
+    }
+}
+
+@Composable
+private fun EmptyPetsState(onAddPet: () -> Unit) {
+    CareTailCard(backgroundColor = CareTailWarmSurface) {
+        Text("Add a pet first", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Create a pet profile before adding care reminders.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = CareTailTextSecondary,
+        )
+        Spacer(Modifier.height(16.dp))
+        PrimaryCoralButton(text = "Add Pet", onClick = onAddPet)
+    }
+}
+
+@Composable
+private fun ReminderChipRows(
+    values: List<String>,
+    selectedValue: String,
+    onSelected: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        values.chunked(3).forEach { rowValues ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                rowValues.forEach { value ->
+                    ReminderTypeChip(
+                        text = value,
+                        selected = selectedValue == value,
+                        onClick = { onSelected(value) },
+                    )
+                }
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ package com.caretail.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.caretail.app.data.repository.PetRepository
+import com.caretail.app.data.repository.ReminderRepository
 
 class AddPetViewModelFactory(
     private val petRepository: PetRepository,
@@ -30,12 +31,13 @@ class PetsViewModelFactory(
 
 class PetProfileViewModelFactory(
     private val petRepository: PetRepository,
+    private val reminderRepository: ReminderRepository,
     private val petId: Long,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PetProfileViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return PetProfileViewModel(petRepository, petId) as T
+            return PetProfileViewModel(petRepository, reminderRepository, petId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
@@ -43,11 +45,39 @@ class PetProfileViewModelFactory(
 
 class HomeViewModelFactory(
     private val petRepository: PetRepository,
+    private val reminderRepository: ReminderRepository,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return HomeViewModel(petRepository) as T
+            return HomeViewModel(petRepository, reminderRepository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
+}
+
+class AddReminderViewModelFactory(
+    private val petRepository: PetRepository,
+    private val reminderRepository: ReminderRepository,
+    private val preselectedPetId: Long? = null,
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(AddReminderViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return AddReminderViewModel(petRepository, reminderRepository, preselectedPetId) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
+}
+
+class RemindersViewModelFactory(
+    private val reminderRepository: ReminderRepository,
+    private val petRepository: PetRepository,
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RemindersViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return RemindersViewModel(reminderRepository, petRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

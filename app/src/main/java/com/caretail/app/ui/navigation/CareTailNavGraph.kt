@@ -55,10 +55,11 @@ fun CareTailNavGraph(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
                 petRepository = appContainer.petRepository,
+                reminderRepository = appContainer.reminderRepository,
                 onOpenPremium = { navController.navigate(CareTailRoute.Premium.route) },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
                 onOpenPetProfile = { petId -> navController.navigate(CareTailRoute.PetProfile.createRoute(petId)) },
-                onAddReminder = { navController.navigate(CareTailRoute.AddReminder.route) },
+                onAddReminder = { navController.navigate(CareTailRoute.AddReminder.createRoute()) },
             )
         }
         composable(CareTailRoute.Pets.route) {
@@ -80,8 +81,10 @@ fun CareTailNavGraph(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
                 petRepository = appContainer.petRepository,
+                reminderRepository = appContainer.reminderRepository,
                 petId = petId,
                 onBack = { navController.popBackStack() },
+                onAddReminder = { selectedPetId -> navController.navigate(CareTailRoute.AddReminder.createRoute(selectedPetId)) },
             )
         }
         composable(CareTailRoute.AddPet.route) {
@@ -102,14 +105,39 @@ fun CareTailNavGraph(
             RemindersScreen(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
-                onAddReminder = { navController.navigate(CareTailRoute.AddReminder.route) },
+                reminderRepository = appContainer.reminderRepository,
+                petRepository = appContainer.petRepository,
+                onAddReminder = { navController.navigate(CareTailRoute.AddReminder.createRoute()) },
             )
         }
-        composable(CareTailRoute.AddReminder.route) {
+        composable(
+            route = CareTailRoute.AddReminder.route,
+            arguments = listOf(
+                navArgument(CareTailRoute.AddReminder.petIdArg) {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                },
+            ),
+        ) { backStackEntry ->
+            val petId = backStackEntry.arguments
+                ?.getLong(CareTailRoute.AddReminder.petIdArg)
+                ?.takeIf { it > 0L }
             AddReminderScreen(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
+                petRepository = appContainer.petRepository,
+                reminderRepository = appContainer.reminderRepository,
+                preselectedPetId = petId,
                 onBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.navigate(CareTailRoute.Reminders.route) {
+                        popUpTo(CareTailRoute.Home.route) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
             )
         }
         composable(CareTailRoute.Diary.route) {

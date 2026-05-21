@@ -31,6 +31,7 @@ import com.caretail.app.ui.components.CareTailTopBar
 import com.caretail.app.ui.components.PetImagePlaceholder
 import com.caretail.app.ui.components.PrimaryCoralButton
 import com.caretail.app.ui.components.ReminderTypeChip
+import com.caretail.app.ui.components.careTailOutlinedTextFieldColors
 import com.caretail.app.ui.navigation.CareTailRoute
 import com.caretail.app.ui.theme.CareTailAccent
 import com.caretail.app.ui.theme.CareTailTextSecondary
@@ -49,6 +50,8 @@ fun AddPetScreen(
     val factory = remember(petRepository) { AddPetViewModelFactory(petRepository) }
     val viewModel: AddPetViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
+    val textFieldColors = careTailOutlinedTextFieldColors()
+    val validationMessage = uiState.validationError.orEmpty()
 
     LaunchedEffect(uiState.savedPetId) {
         uiState.savedPetId?.let(onSaved)
@@ -103,6 +106,8 @@ fun AddPetScreen(
                     onValueChange = viewModel::onNameChanged,
                     label = { Text("Name *") },
                     singleLine = true,
+                    isError = validationMessage.contains("name", ignoreCase = true),
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(14.dp))
@@ -123,6 +128,7 @@ fun AddPetScreen(
                     onValueChange = viewModel::onBreedChanged,
                     label = { Text("Breed") },
                     singleLine = true,
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(14.dp))
@@ -131,6 +137,7 @@ fun AddPetScreen(
                     onValueChange = viewModel::onGenderChanged,
                     label = { Text("Gender") },
                     singleLine = true,
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(14.dp))
@@ -138,8 +145,9 @@ fun AddPetScreen(
                     value = uiState.birthDateText,
                     onValueChange = viewModel::onBirthDateChanged,
                     label = { Text("Birth date") },
-                    placeholder = { Text("Optional for now") },
+                    placeholder = { Text("Optional for now", color = CareTailTextSecondary.copy(alpha = 0.75f)) },
                     singleLine = true,
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(14.dp))
@@ -149,6 +157,8 @@ fun AddPetScreen(
                     label = { Text("Weight kg") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    isError = validationMessage.contains("weight", ignoreCase = true),
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(14.dp))
@@ -156,6 +166,7 @@ fun AddPetScreen(
                     value = uiState.notes,
                     onValueChange = viewModel::onNotesChanged,
                     label = { Text("Notes") },
+                    colors = textFieldColors,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),

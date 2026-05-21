@@ -47,10 +47,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -232,6 +234,32 @@ fun PrimaryCoralButton(
         Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }
 }
+
+@Composable
+fun careTailOutlinedTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = CareTailTextPrimary,
+    unfocusedTextColor = CareTailTextPrimary,
+    disabledTextColor = CareTailTextSecondary,
+    errorTextColor = CareTailTextPrimary,
+    focusedContainerColor = CareTailCard,
+    unfocusedContainerColor = CareTailCard,
+    disabledContainerColor = CareTailCard,
+    errorContainerColor = CareTailCard,
+    cursorColor = CareTailPrimary,
+    errorCursorColor = CareTailAccent,
+    focusedBorderColor = CareTailPrimary,
+    unfocusedBorderColor = Color(0xFFD1D5DB),
+    disabledBorderColor = CareTailDivider,
+    errorBorderColor = CareTailAccent,
+    focusedLabelColor = CareTailPrimaryDark,
+    unfocusedLabelColor = CareTailTextSecondary,
+    disabledLabelColor = CareTailTextSecondary.copy(alpha = 0.7f),
+    errorLabelColor = CareTailAccent,
+    focusedPlaceholderColor = CareTailTextSecondary.copy(alpha = 0.75f),
+    unfocusedPlaceholderColor = CareTailTextSecondary.copy(alpha = 0.75f),
+    disabledPlaceholderColor = CareTailTextSecondary.copy(alpha = 0.5f),
+    errorPlaceholderColor = CareTailTextSecondary.copy(alpha = 0.75f),
+)
 
 @Composable
 fun PetAvatar(
