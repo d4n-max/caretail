@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class AddPetUiState(
+    val editingPetId: Long? = null,
     val name: String = "",
     val species: String = "Cat",
     val breed: String = "",
@@ -28,9 +29,35 @@ data class AddPetUiState(
 
 class AddPetViewModel(
     private val petRepository: PetRepository,
+    private val editPetId: Long? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddPetUiState())
     val uiState: StateFlow<AddPetUiState> = _uiState.asStateFlow()
+
+    init {
+        editPetId?.let { petId ->
+            viewModelScope.launch {
+                update { copy(isLoading = true) }
+                val pet = petRepository.getPetById(petId)
+                if (pet == null) {
+                    update { copy(isLoading = false, generalError = "Pet profile not found.") }
+                } else {
+                    update {
+                        copy(
+                            editingPetId = pet.id,
+                            name = pet.name,
+                            species = pet.species,
+                            breed = pet.breed.orEmpty(),
+                            gender = pet.gender.orEmpty(),
+                            weightKg = pet.weightKg?.toString().orEmpty(),
+                            notes = pet.notes.orEmpty(),
+                            isLoading = false,
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     fun onNameChanged(value: String) = update { copy(name = value, validationError = null, generalError = null) }
 
@@ -68,27 +95,34 @@ class AddPetViewModel(
         viewModelScope.launch {
             update { copy(isLoading = true, validationError = null, generalError = null) }
             try {
+                val editingPetId = state.editingPetId
+                val existingPet = editingPetId?.let { petRepository.getPetById(it) }
                 val petCount = petRepository.getPetCount()
-                if (!PremiumManager.canAddPet(petCount)) {
+                if (editingPetId == null && !PremiumManager.canAddPet(petCount)) {
                     update { copy(isLoading = false, showPremiumUpsell = true) }
                     return@launch
                 }
                 val now = System.currentTimeMillis()
-                val petId = petRepository.addPet(
-                    PetEntity(
-                        name = trimmedName,
-                        species = state.species,
-                        breed = state.breed.trim().ifBlank { null },
-                        gender = state.gender.trim().ifBlank { null },
-                        birthDateMillis = null,
-                        weightKg = parsedWeight,
-                        photoUri = null,
-                        notes = state.notes.trim().ifBlank { null },
-                        createdAtMillis = now,
-                        updatedAtMillis = now,
-                    ),
+                val pet = PetEntity(
+                    id = editingPetId ?: 0,
+                    name = trimmedName,
+                    species = state.species,
+                    breed = state.breed.trim().ifBlank { null },
+                    gender = state.gender.trim().ifBlank { null },
+                    birthDateMillis = existingPet?.birthDateMillis,
+                    weightKg = parsedWeight,
+                    photoUri = existingPet?.photoUri,
+                    notes = state.notes.trim().ifBlank { null },
+                    createdAtMillis = existingPet?.createdAtMillis ?: now,
+                    updatedAtMillis = now,
                 )
-                update { copy(isLoading = false, savedPetId = petId) }
+                if (editingPetId == null) {
+                    val petId = petRepository.addPet(pet)
+                    update { copy(isLoading = false, savedPetId = petId) }
+                } else {
+                    petRepository.updatePet(pet)
+                    update { copy(isLoading = false, savedPetId = editingPetId) }
+                }
             } catch (error: Exception) {
                 update { copy(isLoading = false, generalError = error.message ?: "Unable to save pet.") }
             }

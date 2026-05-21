@@ -10,6 +10,7 @@ import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.export.PetHealthReportData
 import com.caretail.app.export.PetHealthReportGenerator
+import com.caretail.app.reminders.ReminderNotificationScheduler
 import com.caretail.app.ui.model.HealthDiaryEntryUiModel
 import com.caretail.app.ui.model.PetDocumentUiModel
 import com.caretail.app.ui.model.ReminderUiModel
@@ -41,15 +42,18 @@ data class PetCareReportShareEvent(
 )
 
 class PetProfileViewModel(
-    petRepository: PetRepository,
+    private val petRepository: PetRepository,
     private val reminderRepository: ReminderRepository,
     private val healthDiaryRepository: HealthDiaryRepository,
     private val petDocumentRepository: PetDocumentRepository,
+    private val reminderNotificationScheduler: ReminderNotificationScheduler,
     petId: Long,
 ) : ViewModel() {
     private val reportGenerator = PetHealthReportGenerator()
     private val _shareReportEvents = MutableSharedFlow<PetCareReportShareEvent>()
     val shareReportEvents: SharedFlow<PetCareReportShareEvent> = _shareReportEvents.asSharedFlow()
+    private val _deletedEvents = MutableSharedFlow<Unit>()
+    val deletedEvents: SharedFlow<Unit> = _deletedEvents.asSharedFlow()
 
     val uiState: StateFlow<PetProfileUiState> = combine(
         petRepository.observePetById(petId),
@@ -102,6 +106,17 @@ class PetProfileViewModel(
                 ),
             )
             _shareReportEvents.emit(PetCareReportShareEvent(petName = pet.name, reportText = report))
+        }
+    }
+
+    fun deletePetProfile() {
+        val pet = uiState.value.pet ?: return
+        viewModelScope.launch {
+            reminderRepository.observeRemindersForPet(pet.id).first().forEach { reminder ->
+                reminderNotificationScheduler.cancelReminder(reminder.id)
+            }
+            petRepository.deletePet(pet)
+            _deletedEvents.emit(Unit)
         }
     }
 }

@@ -24,6 +24,10 @@ val RepeatTypes = listOf("None", "Daily", "Weekly", "Monthly", "Yearly")
 
 data class AddReminderUiState(
     val pets: List<PetEntity> = emptyList(),
+    val editingReminderId: Long? = null,
+    val createdAtMillis: Long? = null,
+    val isCompleted: Boolean = false,
+    val completedAtMillis: Long? = null,
     val selectedPetId: Long? = null,
     val title: String = "",
     val type: String = ReminderTypes.first(),
@@ -44,6 +48,7 @@ class AddReminderViewModel(
     private val reminderRepository: ReminderRepository,
     private val reminderNotificationScheduler: ReminderNotificationScheduler,
     private val preselectedPetId: Long? = null,
+    private val editReminderId: Long? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddReminderUiState())
     val uiState: StateFlow<AddReminderUiState> = _uiState.asStateFlow()
@@ -63,6 +68,29 @@ class AddReminderViewModel(
                         },
                         isLoading = false,
                     )
+                }
+            }
+        }
+        editReminderId?.let { reminderId ->
+            viewModelScope.launch {
+                val reminder = reminderRepository.getReminderById(reminderId)
+                if (reminder != null) {
+                    _uiState.update {
+                        it.copy(
+                            editingReminderId = reminder.id,
+                            createdAtMillis = reminder.createdAtMillis,
+                            isCompleted = reminder.isCompleted,
+                            completedAtMillis = reminder.completedAtMillis,
+                            selectedPetId = reminder.petId,
+                            title = reminder.title,
+                            type = reminder.type,
+                            date = formatInputDate(reminder.dueAtMillis),
+                            time = formatInputTime(reminder.dueAtMillis),
+                            repeatType = reminder.repeatType,
+                            notes = reminder.notes.orEmpty(),
+                            isLoading = false,
+                        )
+                    }
                 }
             }
         }
@@ -92,7 +120,7 @@ class AddReminderViewModel(
             update { copy(isLoading = true, validationError = null, generalError = null) }
             try {
                 val activeReminderCount = reminderRepository.getActiveReminderCount()
-                if (!PremiumManager.canAddReminder(activeReminderCount)) {
+                if (state.editingReminderId == null && !PremiumManager.canAddReminder(activeReminderCount)) {
                     update { copy(isLoading = false, upsellReason = PremiumUpsellReason.ReminderLimit) }
                     return@launch
                 }
@@ -102,21 +130,31 @@ class AddReminderViewModel(
                 }
                 val now = System.currentTimeMillis()
                 val reminder = ReminderEntity(
+                    id = state.editingReminderId ?: 0L,
                     petId = validated.petId,
                     title = state.title.trim(),
                     type = state.type,
                     notes = state.notes.trim().ifBlank { null },
                     dueAtMillis = validated.dueAtMillis,
                     repeatType = state.repeatType,
-                    isCompleted = false,
-                    completedAtMillis = null,
-                    createdAtMillis = now,
+                    isCompleted = state.isCompleted,
+                    completedAtMillis = state.completedAtMillis,
+                    createdAtMillis = state.createdAtMillis ?: now,
                     updatedAtMillis = now,
                 )
-                val reminderId = reminderRepository.addReminder(reminder)
-                val savedReminder = reminder.copy(id = reminderId)
+                val savedReminder = if (state.editingReminderId == null) {
+                    val reminderId = reminderRepository.addReminder(reminder)
+                    reminder.copy(id = reminderId)
+                } else {
+                    reminderRepository.updateReminder(reminder)
+                    reminder
+                }
                 val petName = state.pets.firstOrNull { it.id == validated.petId }?.name.orEmpty()
-                reminderNotificationScheduler.scheduleReminder(savedReminder, petName)
+                if (!savedReminder.isCompleted && savedReminder.dueAtMillis > System.currentTimeMillis()) {
+                    reminderNotificationScheduler.rescheduleReminder(savedReminder, petName)
+                } else {
+                    reminderNotificationScheduler.cancelReminder(savedReminder.id)
+                }
                 update {
                     copy(
                         isLoading = false,

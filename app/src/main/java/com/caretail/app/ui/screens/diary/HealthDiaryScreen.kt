@@ -13,16 +13,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Fastfood
 import androidx.compose.material.icons.rounded.Mood
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,12 +63,29 @@ fun HealthDiaryScreen(
     healthDiaryRepository: HealthDiaryRepository,
     onAddDiaryEntry: () -> Unit,
     onAddPet: () -> Unit,
+    onEditDiaryEntry: (Long) -> Unit,
 ) {
     val factory = remember(petRepository, healthDiaryRepository) {
         HealthDiaryViewModelFactory(petRepository, healthDiaryRepository)
     }
     val viewModel: HealthDiaryViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
+    var pendingDelete by remember { mutableStateOf<HealthDiaryEntryUiModel?>(null) }
+
+    pendingDelete?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete health note?") },
+            text = { Text("This health note will be removed from this device.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    viewModel.deleteEntry(entry)
+                    pendingDelete = null
+                }) { Text("Delete", color = CareTailAccent) }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { pendingDelete = null }) { Text("Cancel") } },
+        )
+    }
 
     CareTailScaffold(
         currentRoute = currentRoute,
@@ -126,7 +147,11 @@ fun HealthDiaryScreen(
                             SectionHeader(dateLabel)
                             Spacer(Modifier.height(12.dp))
                             entries.forEach { entry ->
-                                DiaryEntryCard(entry = entry, onDelete = { viewModel.deleteEntry(entry) })
+                                DiaryEntryCard(
+                                    entry = entry,
+                                    onEdit = { onEditDiaryEntry(entry.id) },
+                                    onDelete = { pendingDelete = entry },
+                                )
                                 Spacer(Modifier.height(10.dp))
                             }
                             Spacer(Modifier.height(14.dp))
@@ -164,6 +189,7 @@ private fun EmptyEntriesState(onAddDiaryEntry: () -> Unit) {
 @Composable
 private fun DiaryEntryCard(
     entry: HealthDiaryEntryUiModel,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     CareTailCard(modifier = Modifier.fillMaxWidth()) {
@@ -171,6 +197,9 @@ private fun DiaryEntryCard(
             Text(entry.petName.uppercase(), style = MaterialTheme.typography.labelLarge, color = CareTailTextSecondary)
             Row {
                 Text(entry.timeLabel, style = MaterialTheme.typography.bodyMedium, color = CareTailTextPrimary)
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = CareTailTextSecondary)
+                }
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = CareTailTextSecondary)
                 }

@@ -64,14 +64,15 @@ fun AddDocumentScreen(
     petRepository: PetRepository,
     petDocumentRepository: PetDocumentRepository,
     preselectedPetId: Long?,
+    editDocumentId: Long? = null,
     onBack: () -> Unit,
     onSaved: () -> Unit,
     onAddPet: () -> Unit,
     onOpenPremium: (PremiumUpsellReason) -> Unit,
 ) {
     val context = LocalContext.current
-    val factory = remember(petRepository, petDocumentRepository, preselectedPetId) {
-        AddDocumentViewModelFactory(petRepository, petDocumentRepository, preselectedPetId)
+    val factory = remember(petRepository, petDocumentRepository, preselectedPetId, editDocumentId) {
+        AddDocumentViewModelFactory(petRepository, petDocumentRepository, preselectedPetId, editDocumentId)
     }
     val viewModel: AddDocumentViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
@@ -96,7 +97,7 @@ fun AddDocumentScreen(
         currentRoute = currentRoute,
         onNavigate = onNavigate,
         selectedBottomRoute = CareTailRoute.Settings.route,
-        topBar = { CareTailTopBar(title = "Add Document", showBack = true, onBack = onBack) },
+        topBar = { CareTailTopBar(title = if (uiState.editingDocumentId == null) "Add Document" else "Edit Document", showBack = true, onBack = onBack) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -174,7 +175,7 @@ fun AddDocumentScreen(
                 }
                 Spacer(Modifier.height(24.dp))
                 PrimaryCoralButton(
-                    text = if (uiState.isLoading) "Saving..." else "Save Document",
+                    text = if (uiState.isLoading) "Saving..." else if (uiState.editingDocumentId == null) "Save Document" else "Save Changes",
                     onClick = viewModel::saveDocument,
                 )
             }

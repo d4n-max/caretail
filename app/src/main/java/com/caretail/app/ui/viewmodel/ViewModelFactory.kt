@@ -10,11 +10,12 @@ import com.caretail.app.reminders.ReminderNotificationScheduler
 
 class AddPetViewModelFactory(
     private val petRepository: PetRepository,
+    private val editPetId: Long? = null,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AddPetViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return AddPetViewModel(petRepository) as T
+            return AddPetViewModel(petRepository, editPetId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
@@ -37,12 +38,13 @@ class PetProfileViewModelFactory(
     private val reminderRepository: ReminderRepository,
     private val healthDiaryRepository: HealthDiaryRepository,
     private val petDocumentRepository: PetDocumentRepository,
+    private val reminderNotificationScheduler: com.caretail.app.reminders.ReminderNotificationScheduler,
     private val petId: Long,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PetProfileViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return PetProfileViewModel(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, petId) as T
+            return PetProfileViewModel(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, reminderNotificationScheduler, petId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
@@ -67,11 +69,12 @@ class AddReminderViewModelFactory(
     private val reminderRepository: ReminderRepository,
     private val reminderNotificationScheduler: ReminderNotificationScheduler,
     private val preselectedPetId: Long? = null,
+    private val editReminderId: Long? = null,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AddReminderViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return AddReminderViewModel(petRepository, reminderRepository, reminderNotificationScheduler, preselectedPetId) as T
+            return AddReminderViewModel(petRepository, reminderRepository, reminderNotificationScheduler, preselectedPetId, editReminderId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
@@ -95,11 +98,12 @@ class AddDiaryEntryViewModelFactory(
     private val petRepository: PetRepository,
     private val healthDiaryRepository: HealthDiaryRepository,
     private val preselectedPetId: Long? = null,
+    private val editEntryId: Long? = null,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AddDiaryEntryViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return AddDiaryEntryViewModel(petRepository, healthDiaryRepository, preselectedPetId) as T
+            return AddDiaryEntryViewModel(petRepository, healthDiaryRepository, preselectedPetId, editEntryId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
@@ -122,11 +126,12 @@ class AddDocumentViewModelFactory(
     private val petRepository: PetRepository,
     private val petDocumentRepository: PetDocumentRepository,
     private val preselectedPetId: Long? = null,
+    private val editDocumentId: Long? = null,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AddDocumentViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return AddDocumentViewModel(petRepository, petDocumentRepository, preselectedPetId) as T
+            return AddDocumentViewModel(petRepository, petDocumentRepository, preselectedPetId, editDocumentId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

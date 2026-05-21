@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.Medication
 import androidx.compose.material.icons.rounded.Pets
@@ -20,12 +21,15 @@ import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Vaccines
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,12 +66,31 @@ fun RemindersScreen(
     reminderNotificationScheduler: ReminderNotificationScheduler,
     petRepository: PetRepository,
     onAddReminder: () -> Unit,
+    onEditReminder: (Long) -> Unit,
 ) {
     val factory = remember(reminderRepository, petRepository) {
         RemindersViewModelFactory(reminderRepository, reminderNotificationScheduler, petRepository)
     }
     val viewModel: RemindersViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
+    var pendingDelete by remember { mutableStateOf<ReminderUiModel?>(null) }
+
+    pendingDelete?.let { reminder ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete reminder?") },
+            text = { Text("This reminder will be removed from this device.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    viewModel.deleteReminder(reminder)
+                    pendingDelete = null
+                }) { Text("Delete", color = CareTailAccent) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+            },
+        )
+    }
 
     CareTailScaffold(
         currentRoute = currentRoute,
@@ -94,28 +117,32 @@ fun RemindersScreen(
                     reminders = uiState.overdue,
                     emptyText = null,
                     onToggle = { viewModel.markCompleted(it.id) },
-                    onDelete = viewModel::deleteReminder,
+                    onDelete = { pendingDelete = it },
+                    onEdit = { onEditReminder(it.id) },
                 )
                 ReminderSection(
                     title = "Today",
                     reminders = uiState.today,
                     emptyText = null,
                     onToggle = { viewModel.markCompleted(it.id) },
-                    onDelete = viewModel::deleteReminder,
+                    onDelete = { pendingDelete = it },
+                    onEdit = { onEditReminder(it.id) },
                 )
                 ReminderSection(
                     title = "Upcoming",
                     reminders = uiState.upcoming,
                     emptyText = null,
                     onToggle = { viewModel.markCompleted(it.id) },
-                    onDelete = viewModel::deleteReminder,
+                    onDelete = { pendingDelete = it },
+                    onEdit = { onEditReminder(it.id) },
                 )
                 ReminderSection(
                     title = "Completed",
                     reminders = uiState.completed,
                     emptyText = null,
                     onToggle = viewModel::markIncomplete,
-                    onDelete = viewModel::deleteReminder,
+                    onDelete = { pendingDelete = it },
+                    onEdit = { onEditReminder(it.id) },
                 )
             }
             Spacer(Modifier.height(90.dp))
@@ -152,6 +179,7 @@ private fun ReminderSection(
     emptyText: String?,
     onToggle: (ReminderUiModel) -> Unit,
     onDelete: (ReminderUiModel) -> Unit,
+    onEdit: (ReminderUiModel) -> Unit,
 ) {
     if (reminders.isEmpty() && emptyText == null) return
     SectionHeader(title)
@@ -167,6 +195,7 @@ private fun ReminderSection(
                 icon = reminderIcon(reminder.type),
                 onToggle = { onToggle(reminder) },
                 onDelete = { onDelete(reminder) },
+                onEdit = { onEdit(reminder) },
             )
             Spacer(Modifier.height(10.dp))
         }
@@ -180,6 +209,7 @@ private fun ReminderCard(
     icon: ImageVector,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
+    onEdit: () -> Unit,
 ) {
     CareTailCard(modifier = Modifier.fillMaxWidth()) {
         InfoRow(
@@ -188,6 +218,9 @@ private fun ReminderCard(
             icon = icon,
             trailing = {
                 Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = CareTailTextSecondary)
+                    }
                     IconButton(onClick = onToggle) {
                         Icon(
                             imageVector = if (reminder.isCompleted) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,

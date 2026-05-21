@@ -43,11 +43,12 @@ fun AddPetScreen(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     petRepository: PetRepository,
+    editPetId: Long? = null,
     onBack: () -> Unit,
     onSaved: (Long) -> Unit,
     onOpenPremium: () -> Unit,
 ) {
-    val factory = remember(petRepository) { AddPetViewModelFactory(petRepository) }
+    val factory = remember(petRepository, editPetId) { AddPetViewModelFactory(petRepository, editPetId) }
     val viewModel: AddPetViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
     val textFieldColors = careTailOutlinedTextFieldColors()
@@ -79,7 +80,7 @@ fun AddPetScreen(
         currentRoute = currentRoute,
         onNavigate = onNavigate,
         selectedBottomRoute = CareTailRoute.Pets.route,
-        topBar = { CareTailTopBar(title = "Add Pet", showBack = true, onBack = onBack) },
+        topBar = { CareTailTopBar(title = if (uiState.editingPetId == null) "Add Pet" else "Edit Pet", showBack = true, onBack = onBack) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -87,7 +88,7 @@ fun AddPetScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
         ) {
-            Text("Pet details", style = MaterialTheme.typography.headlineMedium)
+            Text(if (uiState.editingPetId == null) "Pet details" else "Edit pet details", style = MaterialTheme.typography.headlineMedium)
             Text(
                 "Create a local profile to track care reminders, health notes, and records.",
                 style = MaterialTheme.typography.bodyLarge,
@@ -182,7 +183,7 @@ fun AddPetScreen(
             }
             Spacer(Modifier.height(24.dp))
             PrimaryCoralButton(
-                text = if (uiState.isLoading) "Saving..." else "Save Pet",
+                    text = if (uiState.isLoading) "Saving..." else if (uiState.editingPetId == null) "Save Pet" else "Save Changes",
                 onClick = viewModel::savePet,
             )
             Spacer(Modifier.height(24.dp))

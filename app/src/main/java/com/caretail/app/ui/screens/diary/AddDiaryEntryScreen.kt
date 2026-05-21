@@ -57,13 +57,14 @@ fun AddDiaryEntryScreen(
     petRepository: PetRepository,
     healthDiaryRepository: HealthDiaryRepository,
     preselectedPetId: Long?,
+    editEntryId: Long? = null,
     onBack: () -> Unit,
     onSaved: () -> Unit,
     onAddPet: () -> Unit,
     onOpenPremium: (PremiumUpsellReason) -> Unit,
 ) {
-    val factory = remember(petRepository, healthDiaryRepository, preselectedPetId) {
-        AddDiaryEntryViewModelFactory(petRepository, healthDiaryRepository, preselectedPetId)
+    val factory = remember(petRepository, healthDiaryRepository, preselectedPetId, editEntryId) {
+        AddDiaryEntryViewModelFactory(petRepository, healthDiaryRepository, preselectedPetId, editEntryId)
     }
     val viewModel: AddDiaryEntryViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
@@ -82,7 +83,7 @@ fun AddDiaryEntryScreen(
         currentRoute = currentRoute,
         onNavigate = onNavigate,
         selectedBottomRoute = CareTailRoute.Diary.route,
-        topBar = { CareTailTopBar(title = "Add Health Note", showBack = true, onBack = onBack) },
+        topBar = { CareTailTopBar(title = if (uiState.editingEntryId == null) "Add Health Note" else "Edit Health Note", showBack = true, onBack = onBack) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -162,7 +163,7 @@ fun AddDiaryEntryScreen(
                 }
                 Spacer(Modifier.height(24.dp))
                 PrimaryCoralButton(
-                    text = if (uiState.isLoading) "Saving..." else "Save Entry",
+                    text = if (uiState.isLoading) "Saving..." else if (uiState.editingEntryId == null) "Save Entry" else "Save Changes",
                     onClick = viewModel::saveEntry,
                 )
             }

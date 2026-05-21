@@ -20,6 +20,8 @@ val EnergyLevelValues = listOf("High", "Normal", "Low")
 
 data class AddDiaryEntryUiState(
     val pets: List<PetEntity> = emptyList(),
+    val editingEntryId: Long? = null,
+    val createdAtMillis: Long? = null,
     val selectedPetId: Long? = null,
     val entryDateMillis: Long = System.currentTimeMillis(),
     val mood: String = "Normal",
@@ -39,6 +41,7 @@ class AddDiaryEntryViewModel(
     private val petRepository: PetRepository,
     private val healthDiaryRepository: HealthDiaryRepository,
     private val preselectedPetId: Long? = null,
+    private val editEntryId: Long? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddDiaryEntryUiState())
     val uiState: StateFlow<AddDiaryEntryUiState> = _uiState.asStateFlow()
@@ -58,6 +61,28 @@ class AddDiaryEntryViewModel(
                         },
                         isLoading = false,
                     )
+                }
+            }
+        }
+        editEntryId?.let { entryId ->
+            viewModelScope.launch {
+                val entry = healthDiaryRepository.getEntryById(entryId)
+                if (entry != null) {
+                    _uiState.update {
+                        it.copy(
+                            editingEntryId = entry.id,
+                            createdAtMillis = entry.createdAtMillis,
+                            selectedPetId = entry.petId,
+                            entryDateMillis = entry.entryDateMillis,
+                            mood = entry.mood,
+                            appetite = entry.appetite,
+                            energyLevel = entry.energyLevel,
+                            symptoms = entry.symptoms.orEmpty(),
+                            notes = entry.notes.orEmpty(),
+                            imageUri = entry.imageUri,
+                            isLoading = false,
+                        )
+                    }
                 }
             }
         }
@@ -105,25 +130,29 @@ class AddDiaryEntryViewModel(
             update { copy(isLoading = true, validationError = null, generalError = null) }
             try {
                 val totalEntryCount = healthDiaryRepository.getEntryCount()
-                if (!PremiumManager.canAddDiaryEntry(totalEntryCount)) {
+                if (state.editingEntryId == null && !PremiumManager.canAddDiaryEntry(totalEntryCount)) {
                     update { copy(isLoading = false, upsellReason = PremiumUpsellReason.DiaryLimit) }
                     return@launch
                 }
                 val now = System.currentTimeMillis()
-                healthDiaryRepository.addEntry(
-                    HealthDiaryEntryEntity(
-                        petId = petId,
-                        entryDateMillis = state.entryDateMillis,
-                        mood = state.mood,
-                        appetite = state.appetite,
-                        energyLevel = state.energyLevel,
-                        symptoms = state.symptoms.trim().ifBlank { null },
-                        notes = state.notes.trim().ifBlank { null },
-                        imageUri = null,
-                        createdAtMillis = now,
-                        updatedAtMillis = now,
-                    ),
+                val entry = HealthDiaryEntryEntity(
+                    id = state.editingEntryId ?: 0L,
+                    petId = petId,
+                    entryDateMillis = state.entryDateMillis,
+                    mood = state.mood,
+                    appetite = state.appetite,
+                    energyLevel = state.energyLevel,
+                    symptoms = state.symptoms.trim().ifBlank { null },
+                    notes = state.notes.trim().ifBlank { null },
+                    imageUri = state.imageUri,
+                    createdAtMillis = state.createdAtMillis ?: now,
+                    updatedAtMillis = now,
                 )
+                if (state.editingEntryId == null) {
+                    healthDiaryRepository.addEntry(entry)
+                } else {
+                    healthDiaryRepository.updateEntry(entry)
+                }
                 update { copy(isLoading = false, success = true) }
             } catch (error: Exception) {
                 update { copy(isLoading = false, generalError = error.message ?: "Unable to save health note.") }

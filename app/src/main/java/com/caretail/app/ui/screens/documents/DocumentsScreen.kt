@@ -18,15 +18,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,6 +65,7 @@ fun DocumentsScreen(
     petDocumentRepository: PetDocumentRepository,
     onAddDocument: () -> Unit,
     onAddPet: () -> Unit,
+    onEditDocument: (Long) -> Unit,
 ) {
     val context = LocalContext.current
     val factory = remember(petRepository, petDocumentRepository) {
@@ -68,6 +73,22 @@ fun DocumentsScreen(
     }
     val viewModel: DocumentsViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
+    var pendingDelete by remember { mutableStateOf<PetDocumentUiModel?>(null) }
+
+    pendingDelete?.let { document ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete document record?") },
+            text = { Text("This removes only the CareTail record. The original file will stay on your device.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    viewModel.deleteDocument(document)
+                    pendingDelete = null
+                }) { Text("Delete", color = CareTailAccent) }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { pendingDelete = null }) { Text("Cancel") } },
+        )
+    }
 
     fun openDocument(document: PetDocumentUiModel) {
         val uriText = document.fileUri
@@ -144,7 +165,8 @@ fun DocumentsScreen(
                             DocumentCard(
                                 document = document,
                                 onOpen = { openDocument(document) },
-                                onDelete = { viewModel.deleteDocument(document) },
+                                onEdit = { onEditDocument(document.id) },
+                                onDelete = { pendingDelete = document },
                             )
                             Spacer(Modifier.height(10.dp))
                         }
@@ -186,6 +208,7 @@ private fun EmptyDocumentsState(onAddDocument: () -> Unit) {
 private fun DocumentCard(
     document: PetDocumentUiModel,
     onOpen: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     CareTailCard(modifier = Modifier.fillMaxWidth()) {
@@ -202,6 +225,9 @@ private fun DocumentCard(
                 }
             }
             Row {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = CareTailTextSecondary)
+                }
                 IconButton(onClick = onOpen) {
                     Icon(Icons.Rounded.OpenInNew, contentDescription = "Open", tint = CareTailAccent)
                 }

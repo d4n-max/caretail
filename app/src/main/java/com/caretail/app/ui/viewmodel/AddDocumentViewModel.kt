@@ -19,6 +19,8 @@ val DocumentTypeValues = listOf("Vaccine Record", "Lab Result", "Prescription", 
 
 data class AddDocumentUiState(
     val pets: List<PetEntity> = emptyList(),
+    val editingDocumentId: Long? = null,
+    val createdAtMillis: Long? = null,
     val selectedPetId: Long? = null,
     val title: String = "",
     val type: String = DocumentTypeValues.first(),
@@ -38,6 +40,7 @@ class AddDocumentViewModel(
     private val petRepository: PetRepository,
     private val petDocumentRepository: PetDocumentRepository,
     private val preselectedPetId: Long? = null,
+    private val editDocumentId: Long? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddDocumentUiState())
     val uiState: StateFlow<AddDocumentUiState> = _uiState.asStateFlow()
@@ -57,6 +60,26 @@ class AddDocumentViewModel(
                         },
                         isLoading = false,
                     )
+                }
+            }
+        }
+        editDocumentId?.let { documentId ->
+            viewModelScope.launch {
+                val document = petDocumentRepository.getDocumentById(documentId)
+                if (document != null) {
+                    _uiState.update {
+                        it.copy(
+                            editingDocumentId = document.id,
+                            createdAtMillis = document.createdAtMillis,
+                            selectedPetId = document.petId,
+                            title = document.title,
+                            type = document.type,
+                            fileUri = document.fileUri,
+                            fileName = document.fileUri?.substringAfterLast('/'),
+                            notes = document.notes.orEmpty(),
+                            isLoading = false,
+                        )
+                    }
                 }
             }
         }
@@ -113,22 +136,26 @@ class AddDocumentViewModel(
             update { copy(isLoading = true, validationError = null, generalError = null) }
             try {
                 val totalDocumentCount = petDocumentRepository.getDocumentCount()
-                if (!PremiumManager.canAddDocument(totalDocumentCount)) {
+                if (state.editingDocumentId == null && !PremiumManager.canAddDocument(totalDocumentCount)) {
                     update { copy(isLoading = false, upsellReason = PremiumUpsellReason.DocumentLimit) }
                     return@launch
                 }
                 val now = System.currentTimeMillis()
-                petDocumentRepository.addDocument(
-                    PetDocumentEntity(
-                        petId = petId,
-                        title = state.title.trim(),
-                        type = state.type,
-                        fileUri = state.fileUri,
-                        notes = state.notes.trim().ifBlank { null },
-                        createdAtMillis = now,
-                        updatedAtMillis = now,
-                    ),
+                val document = PetDocumentEntity(
+                    id = state.editingDocumentId ?: 0L,
+                    petId = petId,
+                    title = state.title.trim(),
+                    type = state.type,
+                    fileUri = state.fileUri,
+                    notes = state.notes.trim().ifBlank { null },
+                    createdAtMillis = state.createdAtMillis ?: now,
+                    updatedAtMillis = now,
                 )
+                if (state.editingDocumentId == null) {
+                    petDocumentRepository.addDocument(document)
+                } else {
+                    petDocumentRepository.updateDocument(document)
+                }
                 update { copy(isLoading = false, success = true) }
             } catch (error: Exception) {
                 update { copy(isLoading = false, generalError = error.message ?: "Unable to save document.") }

@@ -1,6 +1,7 @@
 package com.caretail.app.ui.screens.pets
 
 import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,13 +16,16 @@ import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.MonitorWeight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -34,6 +38,7 @@ import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetDocumentRepository
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
+import com.caretail.app.reminders.ReminderNotificationScheduler
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
@@ -63,20 +68,24 @@ fun PetProfileScreen(
     reminderRepository: ReminderRepository,
     healthDiaryRepository: HealthDiaryRepository,
     petDocumentRepository: PetDocumentRepository,
+    reminderNotificationScheduler: ReminderNotificationScheduler,
     petId: Long,
     onBack: () -> Unit,
     onAddReminder: (Long) -> Unit,
     onAddDiaryEntry: (Long) -> Unit,
     onAddDocument: (Long) -> Unit,
     onOpenPremium: (PremiumUpsellReason) -> Unit,
+    onEditPet: (Long) -> Unit,
+    onDeleted: () -> Unit,
 ) {
     val context = LocalContext.current
-    val factory = remember(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, petId) {
-        PetProfileViewModelFactory(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, petId)
+    val factory = remember(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, reminderNotificationScheduler, petId) {
+        PetProfileViewModelFactory(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, reminderNotificationScheduler, petId)
     }
     val viewModel: PetProfileViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
     val pet = uiState.pet
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.shareReportEvents.collect { event ->
@@ -87,6 +96,26 @@ fun PetProfileScreen(
             }
             context.startActivity(Intent.createChooser(shareIntent, "Share care report"))
         }
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.deletedEvents.collect { onDeleted() }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete pet profile?") },
+            text = { Text("This will remove this pet and its reminders, health notes, and document records from this device.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showDeleteDialog = false
+                    viewModel.deletePetProfile()
+                }) { Text("Delete", color = com.caretail.app.ui.theme.CareTailAccent) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+            },
+        )
     }
 
     CareTailScaffold(
@@ -120,6 +149,11 @@ fun PetProfileScreen(
                     onAddReminder = { onAddReminder(pet.id) },
                     onAddDiaryEntry = { onAddDiaryEntry(pet.id) },
                     onAddDocument = { onAddDocument(pet.id) },
+                    onEditReminder = { reminderId -> onNavigate(CareTailRoute.EditReminder.createRoute(reminderId)) },
+                    onEditDiaryEntry = { entryId -> onNavigate(CareTailRoute.EditDiaryEntry.createRoute(entryId)) },
+                    onEditDocument = { documentId -> onNavigate(CareTailRoute.EditDocument.createRoute(documentId)) },
+                    onEditPet = { onEditPet(pet.id) },
+                    onDeletePet = { showDeleteDialog = true },
                     onExportReport = {
                         if (uiState.isPremium) {
                             viewModel.exportCareReport()
@@ -144,6 +178,11 @@ private fun PetProfileContent(
     onAddReminder: () -> Unit,
     onAddDiaryEntry: () -> Unit,
     onAddDocument: () -> Unit,
+    onEditReminder: (Long) -> Unit,
+    onEditDiaryEntry: (Long) -> Unit,
+    onEditDocument: (Long) -> Unit,
+    onEditPet: () -> Unit,
+    onDeletePet: () -> Unit,
     onExportReport: () -> Unit,
 ) {
     CareTailCard(modifier = Modifier.fillMaxWidth(), backgroundColor = CareTailWarmSurface) {
@@ -175,27 +214,30 @@ private fun PetProfileContent(
             }
             Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PrimaryCoralButton(text = "Edit Profile", modifier = Modifier.weight(1f), onClick = {})
+                PrimaryCoralButton(text = "Edit Profile", modifier = Modifier.weight(1f), onClick = onEditPet)
                 SecondaryButton(
                     text = if (isPremium) "Export Report" else "Export Report Premium",
                     modifier = Modifier.weight(1f),
                     onClick = onExportReport,
                 )
             }
+            Spacer(Modifier.height(10.dp))
+            SecondaryButton(text = "Delete Pet", modifier = Modifier.fillMaxWidth(), onClick = onDeletePet)
         }
     }
     Spacer(Modifier.height(22.dp))
-    UpcomingRemindersSection(reminders = reminders, onAddReminder = onAddReminder)
+    UpcomingRemindersSection(reminders = reminders, onAddReminder = onAddReminder, onEditReminder = onEditReminder)
     Spacer(Modifier.height(12.dp))
-    RecentDiarySection(entries = diaryEntries, onAddDiaryEntry = onAddDiaryEntry)
+    RecentDiarySection(entries = diaryEntries, onAddDiaryEntry = onAddDiaryEntry, onEditDiaryEntry = onEditDiaryEntry)
     Spacer(Modifier.height(12.dp))
-    DocumentsSection(documents = documents, onAddDocument = onAddDocument)
+    DocumentsSection(documents = documents, onAddDocument = onAddDocument, onEditDocument = onEditDocument)
 }
 
 @Composable
 private fun UpcomingRemindersSection(
     reminders: List<ReminderUiModel>,
     onAddReminder: () -> Unit,
+    onEditReminder: (Long) -> Unit,
 ) {
     SectionHeader("Upcoming Reminders", icon = Icons.Rounded.Event, actionText = "Add", onAction = onAddReminder)
     Spacer(Modifier.height(12.dp))
@@ -210,7 +252,7 @@ private fun UpcomingRemindersSection(
         }
     } else {
         reminders.forEach { reminder ->
-            CareTailCard {
+            CareTailCard(modifier = Modifier.clickable { onEditReminder(reminder.id) }) {
                 Text(reminder.title, style = MaterialTheme.typography.titleMedium, color = CareTailTextPrimary)
                 Text(
                     "${reminder.dueDateLabel} at ${reminder.dueTimeLabel}",
@@ -229,6 +271,7 @@ private fun UpcomingRemindersSection(
 private fun DocumentsSection(
     documents: List<PetDocumentUiModel>,
     onAddDocument: () -> Unit,
+    onEditDocument: (Long) -> Unit,
 ) {
     SectionHeader("Documents & Records", icon = Icons.Rounded.Description, actionText = "Add document", onAction = onAddDocument)
     Spacer(Modifier.height(12.dp))
@@ -238,7 +281,7 @@ private fun DocumentsSection(
         }
     } else {
         documents.forEach { document ->
-            CareTailCard {
+            CareTailCard(modifier = Modifier.clickable { onEditDocument(document.id) }) {
                 Text(document.title, style = MaterialTheme.typography.titleMedium, color = CareTailTextPrimary)
                 Text(document.createdDateLabel, style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
                 Spacer(Modifier.height(10.dp))
@@ -253,6 +296,7 @@ private fun DocumentsSection(
 private fun RecentDiarySection(
     entries: List<HealthDiaryEntryUiModel>,
     onAddDiaryEntry: () -> Unit,
+    onEditDiaryEntry: (Long) -> Unit,
 ) {
     SectionHeader("Recent Health Diary", icon = Icons.Rounded.Favorite, actionText = "Log health", onAction = onAddDiaryEntry)
     Spacer(Modifier.height(12.dp))
@@ -267,7 +311,7 @@ private fun RecentDiarySection(
         }
     } else {
         entries.forEach { entry ->
-            CareTailCard {
+            CareTailCard(modifier = Modifier.clickable { onEditDiaryEntry(entry.id) }) {
                 Text("${entry.dateLabel} at ${entry.timeLabel}", style = MaterialTheme.typography.labelLarge, color = CareTailTextSecondary)
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -59,13 +59,14 @@ fun AddReminderScreen(
     reminderRepository: ReminderRepository,
     reminderNotificationScheduler: ReminderNotificationScheduler,
     preselectedPetId: Long?,
+    editReminderId: Long? = null,
     onBack: () -> Unit,
     onSaved: () -> Unit,
     onAddPet: () -> Unit,
     onOpenPremium: (PremiumUpsellReason) -> Unit,
 ) {
-    val factory = remember(petRepository, reminderRepository, preselectedPetId) {
-        AddReminderViewModelFactory(petRepository, reminderRepository, reminderNotificationScheduler, preselectedPetId)
+    val factory = remember(petRepository, reminderRepository, preselectedPetId, editReminderId) {
+        AddReminderViewModelFactory(petRepository, reminderRepository, reminderNotificationScheduler, preselectedPetId, editReminderId)
     }
     val viewModel: AddReminderViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
@@ -105,7 +106,7 @@ fun AddReminderScreen(
         currentRoute = currentRoute,
         onNavigate = onNavigate,
         selectedBottomRoute = CareTailRoute.Reminders.route,
-        topBar = { CareTailTopBar(title = "Add Reminder", showBack = true, onBack = onBack) },
+        topBar = { CareTailTopBar(title = if (uiState.editingReminderId == null) "Add Reminder" else "Edit Reminder", showBack = true, onBack = onBack) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -204,7 +205,7 @@ fun AddReminderScreen(
                 }
                 Spacer(Modifier.height(24.dp))
                 PrimaryCoralButton(
-                    text = if (uiState.isLoading) "Saving..." else "Save Reminder",
+                    text = if (uiState.isLoading) "Saving..." else if (uiState.editingReminderId == null) "Save Reminder" else "Save Changes",
                     onClick = ::saveWithNotificationPermissionCheck,
                 )
             }
