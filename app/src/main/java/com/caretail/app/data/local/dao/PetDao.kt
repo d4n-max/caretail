@@ -29,6 +29,9 @@ interface PetDao {
     @Delete
     suspend fun deletePet(pet: PetEntity)
 
+    @Query("DELETE FROM pets")
+    suspend fun deleteAllPets()
+
     @Query("SELECT COUNT(*) FROM pets")
     suspend fun getPetCount(): Int
 }

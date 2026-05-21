@@ -24,4 +24,6 @@ class HealthDiaryRepository(
     suspend fun updateEntry(entry: HealthDiaryEntryEntity) = healthDiaryDao.updateEntry(entry)
 
     suspend fun deleteEntry(entry: HealthDiaryEntryEntity) = healthDiaryDao.deleteEntry(entry)
+
+    suspend fun deleteAllEntries() = healthDiaryDao.deleteAllEntries()
 }

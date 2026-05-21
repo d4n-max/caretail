@@ -19,5 +19,7 @@ class PetRepository(
 
     suspend fun deletePet(pet: PetEntity) = petDao.deletePet(pet)
 
+    suspend fun deleteAllPets() = petDao.deleteAllPets()
+
     suspend fun getPetCount(): Int = petDao.getPetCount()
 }

@@ -357,6 +357,19 @@ fun CareTailNavGraph(
                 onNavigate = onBottomNavigate,
                 onOpenPremium = { navController.navigate(CareTailRoute.Premium.createRoute()) },
                 onOpenDocuments = { navController.navigate(CareTailRoute.Documents.route) },
+                petRepository = appContainer.petRepository,
+                reminderRepository = appContainer.reminderRepository,
+                healthDiaryRepository = appContainer.healthDiaryRepository,
+                petDocumentRepository = appContainer.petDocumentRepository,
+                reminderNotificationScheduler = appContainer.reminderNotificationScheduler,
+                onLocalDataDeleted = {
+                    navController.navigate(CareTailRoute.Home.route) {
+                        popUpTo(CareTailRoute.Home.route) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
+                },
             )
         }
     }

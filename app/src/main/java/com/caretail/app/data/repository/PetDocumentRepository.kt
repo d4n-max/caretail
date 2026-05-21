@@ -24,4 +24,6 @@ class PetDocumentRepository(
     suspend fun updateDocument(document: PetDocumentEntity) = petDocumentDao.updateDocument(document)
 
     suspend fun deleteDocument(document: PetDocumentEntity) = petDocumentDao.deleteDocument(document)
+
+    suspend fun deleteAllDocuments() = petDocumentDao.deleteAllDocuments()
 }

@@ -34,4 +34,7 @@ interface PetDocumentDao {
 
     @Delete
     suspend fun deleteDocument(document: PetDocumentEntity)
+
+    @Query("DELETE FROM pet_documents")
+    suspend fun deleteAllDocuments()
 }

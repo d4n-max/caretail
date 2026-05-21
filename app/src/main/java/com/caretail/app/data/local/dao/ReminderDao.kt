@@ -29,6 +29,9 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE id = :id LIMIT 1")
     suspend fun getReminderById(id: Long): ReminderEntity?
 
+    @Query("SELECT * FROM reminders")
+    suspend fun getAllReminders(): List<ReminderEntity>
+
     @Query("SELECT COUNT(*) FROM reminders WHERE isCompleted = 0")
     suspend fun getActiveReminderCount(): Int
 
@@ -40,6 +43,9 @@ interface ReminderDao {
 
     @Delete
     suspend fun deleteReminder(reminder: ReminderEntity)
+
+    @Query("DELETE FROM reminders")
+    suspend fun deleteAllReminders()
 
     @Query("UPDATE reminders SET isCompleted = 1, completedAtMillis = :completedAtMillis, updatedAtMillis = :completedAtMillis WHERE id = :id")
     suspend fun markReminderCompleted(id: Long, completedAtMillis: Long)

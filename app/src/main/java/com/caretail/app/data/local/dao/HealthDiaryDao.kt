@@ -34,4 +34,7 @@ interface HealthDiaryDao {
 
     @Delete
     suspend fun deleteEntry(entry: HealthDiaryEntryEntity)
+
+    @Query("DELETE FROM health_diary_entries")
+    suspend fun deleteAllEntries()
 }

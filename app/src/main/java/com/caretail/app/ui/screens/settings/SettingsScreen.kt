@@ -1,5 +1,6 @@
 package com.caretail.app.ui.screens.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,14 +36,21 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.caretail.app.billing.PremiumManager
+import com.caretail.app.data.repository.HealthDiaryRepository
+import com.caretail.app.data.repository.PetDocumentRepository
+import com.caretail.app.data.repository.PetRepository
+import com.caretail.app.data.repository.ReminderRepository
+import com.caretail.app.reminders.ReminderNotificationScheduler
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
@@ -56,6 +64,7 @@ import com.caretail.app.ui.theme.CareTailPrimaryDark
 import com.caretail.app.ui.theme.CareTailTextPrimary
 import com.caretail.app.ui.theme.CareTailTextSecondary
 import com.caretail.app.ui.theme.CareTailWarmSurface
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -63,10 +72,19 @@ fun SettingsScreen(
     onNavigate: (String) -> Unit,
     onOpenPremium: () -> Unit,
     onOpenDocuments: () -> Unit,
+    petRepository: PetRepository,
+    reminderRepository: ReminderRepository,
+    healthDiaryRepository: HealthDiaryRepository,
+    petDocumentRepository: PetDocumentRepository,
+    reminderNotificationScheduler: ReminderNotificationScheduler,
+    onLocalDataDeleted: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val isPremium by PremiumManager.isPremium.collectAsState()
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
 
     feedbackMessage?.let { message ->
         AlertDialog(
@@ -81,24 +99,46 @@ fun SettingsScreen(
 
     if (showDeleteConfirmation) {
         AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete local data?") },
+            onDismissRequest = { if (!isDeleting) showDeleteConfirmation = false },
+            title = { Text("Delete all local data?") },
             text = {
                 Text(
-                    "This action is not available in the MVP yet. Full local data deletion will be added with a safer confirmation flow.",
+                    "This will remove all pet profiles, reminders, health notes, and document records stored on this device. This cannot be undone.",
                 )
             },
             confirmButton = {
                 DestructiveCareTailButton(
-                    text = "Delete",
+                    text = if (isDeleting) "Deleting..." else "Delete",
+                    enabled = !isDeleting,
                     onClick = {
-                        showDeleteConfirmation = false
-                        feedbackMessage = "Delete Local Data will be added with a safer confirmation flow."
+                        scope.launch {
+                            isDeleting = true
+                            try {
+                                reminderRepository.getAllReminders().forEach { reminder ->
+                                    reminderNotificationScheduler.cancelReminder(reminder.id)
+                                }
+                                petDocumentRepository.deleteAllDocuments()
+                                healthDiaryRepository.deleteAllEntries()
+                                reminderRepository.deleteAllReminders()
+                                petRepository.deleteAllPets()
+                                showDeleteConfirmation = false
+                                Toast.makeText(context, "Local data deleted.", Toast.LENGTH_SHORT).show()
+                                onLocalDataDeleted()
+                            } catch (error: Exception) {
+                                feedbackMessage = "Local data could not be deleted. Please try again."
+                            } finally {
+                                isDeleting = false
+                            }
+                        }
                     },
                 )
             },
             dismissButton = {
-                TextActionButton(text = "Cancel", onClick = { showDeleteConfirmation = false })
+                TextActionButton(
+                    text = "Cancel",
+                    enabled = !isDeleting,
+                    onClick = { showDeleteConfirmation = false },
+                )
             },
         )
     }
@@ -152,9 +192,20 @@ fun SettingsScreen(
                     onClick = { feedbackMessage = "Privacy Policy will be added before release." },
                 )
                 SettingsRow(
+                    title = "Terms of Use",
+                    subtitle = "Terms of Use will be added before release.",
+                    icon = Icons.Rounded.Shield,
+                    onClick = { feedbackMessage = "Terms of Use will be added before release." },
+                )
+                SettingsRow(
                     title = "No cloud sync",
                     subtitle = "MVP data stays on this device.",
                     icon = Icons.Rounded.CloudOff,
+                )
+                SettingsRow(
+                    title = "Local-first data",
+                    subtitle = "CareTail stores MVP pet care records locally on this device.",
+                    icon = Icons.Rounded.PrivacyTip,
                 )
             }
 
@@ -173,7 +224,7 @@ fun SettingsScreen(
                 )
                 SettingsRow(
                     title = "Delete Local Data",
-                    subtitle = "Not available in this MVP.",
+                    subtitle = "Remove CareTail records stored in the local database.",
                     icon = Icons.Rounded.DeleteOutline,
                     destructive = true,
                     onClick = { showDeleteConfirmation = true },
