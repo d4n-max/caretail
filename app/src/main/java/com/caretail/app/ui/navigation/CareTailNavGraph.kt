@@ -94,6 +94,7 @@ fun CareTailNavGraph(
                 onAddReminder = { selectedPetId -> navController.navigate(CareTailRoute.AddReminder.createRoute(selectedPetId)) },
                 onAddDiaryEntry = { selectedPetId -> navController.navigate(CareTailRoute.AddDiaryEntry.createRoute(selectedPetId)) },
                 onAddDocument = { selectedPetId -> navController.navigate(CareTailRoute.AddDocument.createRoute(selectedPetId)) },
+                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
             )
         }
         composable(CareTailRoute.AddPet.route) {

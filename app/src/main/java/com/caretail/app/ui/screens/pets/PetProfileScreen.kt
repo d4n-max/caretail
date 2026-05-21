@@ -1,5 +1,6 @@
 package com.caretail.app.ui.screens.pets
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,14 +18,17 @@ import androidx.compose.material.icons.rounded.MonitorWeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetDocumentRepository
@@ -64,13 +68,26 @@ fun PetProfileScreen(
     onAddReminder: (Long) -> Unit,
     onAddDiaryEntry: (Long) -> Unit,
     onAddDocument: (Long) -> Unit,
+    onOpenPremium: (PremiumUpsellReason) -> Unit,
 ) {
+    val context = LocalContext.current
     val factory = remember(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, petId) {
         PetProfileViewModelFactory(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, petId)
     }
     val viewModel: PetProfileViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
     val pet = uiState.pet
+
+    LaunchedEffect(viewModel) {
+        viewModel.shareReportEvents.collect { event ->
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, "CareTail report for ${event.petName}")
+                putExtra(Intent.EXTRA_TEXT, event.reportText)
+            }
+            context.startActivity(Intent.createChooser(shareIntent, "Share care report"))
+        }
+    }
 
     CareTailScaffold(
         currentRoute = currentRoute,
@@ -99,9 +116,17 @@ fun PetProfileScreen(
                     reminders = uiState.upcomingReminders,
                     diaryEntries = uiState.recentDiaryEntries,
                     documents = uiState.recentDocuments,
+                    isPremium = uiState.isPremium,
                     onAddReminder = { onAddReminder(pet.id) },
                     onAddDiaryEntry = { onAddDiaryEntry(pet.id) },
                     onAddDocument = { onAddDocument(pet.id) },
+                    onExportReport = {
+                        if (uiState.isPremium) {
+                            viewModel.exportCareReport()
+                        } else {
+                            onOpenPremium(PremiumUpsellReason.ExportLocked)
+                        }
+                    },
                 )
             }
             Spacer(Modifier.height(20.dp))
@@ -115,9 +140,11 @@ private fun PetProfileContent(
     reminders: List<ReminderUiModel>,
     diaryEntries: List<HealthDiaryEntryUiModel>,
     documents: List<PetDocumentUiModel>,
+    isPremium: Boolean,
     onAddReminder: () -> Unit,
     onAddDiaryEntry: () -> Unit,
     onAddDocument: () -> Unit,
+    onExportReport: () -> Unit,
 ) {
     CareTailCard(modifier = Modifier.fillMaxWidth(), backgroundColor = CareTailWarmSurface) {
         Column(
@@ -149,7 +176,11 @@ private fun PetProfileContent(
             Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 PrimaryCoralButton(text = "Edit Profile", modifier = Modifier.weight(1f), onClick = {})
-                SecondaryButton(text = "Share Records", modifier = Modifier.weight(1f), onClick = {})
+                SecondaryButton(
+                    text = if (isPremium) "Export Report" else "Export Report Premium",
+                    modifier = Modifier.weight(1f),
+                    onClick = onExportReport,
+                )
             }
         }
     }

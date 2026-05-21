@@ -27,8 +27,8 @@ enum class PremiumUpsellReason(
     ),
     ExportLocked(
         routeValue = "export_locked",
-        title = "Exportable reports are Premium.",
-        message = "Exportable health reports are included with Premium.",
+        title = "Exportable care reports are Premium.",
+        message = "Exportable care reports are included with CareTail Premium.",
     ),
     AdvancedRepeatLocked(
         routeValue = "advanced_repeat_locked",

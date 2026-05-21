@@ -104,7 +104,7 @@ fun PremiumScreen(
             Spacer(Modifier.height(18.dp))
             PremiumBenefitRow("Unlimited documents")
             Spacer(Modifier.height(18.dp))
-            PremiumBenefitRow("Exportable reports")
+            PremiumBenefitRow("Exportable care reports")
             Spacer(Modifier.height(18.dp))
             PremiumBenefitRow("Future cloud backup")
         }
