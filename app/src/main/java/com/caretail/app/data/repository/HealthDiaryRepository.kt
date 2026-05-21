@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.Flow
 class HealthDiaryRepository(
     private val healthDiaryDao: HealthDiaryDao,
 ) {
+    fun observeAllEntries(): Flow<List<HealthDiaryEntryEntity>> = healthDiaryDao.observeAllEntries()
+
     fun observeEntriesForPet(petId: Long): Flow<List<HealthDiaryEntryEntity>> =
         healthDiaryDao.observeEntriesForPet(petId)
 

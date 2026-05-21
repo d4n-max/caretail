@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HealthDiaryDao {
+    @Query("SELECT * FROM health_diary_entries ORDER BY entryDateMillis DESC")
+    fun observeAllEntries(): Flow<List<HealthDiaryEntryEntity>>
+
     @Query("SELECT * FROM health_diary_entries WHERE petId = :petId ORDER BY entryDateMillis DESC")
     fun observeEntriesForPet(petId: Long): Flow<List<HealthDiaryEntryEntity>>
 

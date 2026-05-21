@@ -15,7 +15,10 @@ sealed class CareTailRoute(val route: String, val label: String) {
         fun createRoute(petId: Long? = null): String = petId?.let { "add_reminder?petId=$it" } ?: "add_reminder"
     }
     data object Diary : CareTailRoute("diary", "Diary")
-    data object AddDiaryEntry : CareTailRoute("add_diary_entry", "Add Diary Entry")
+    data object AddDiaryEntry : CareTailRoute("add_diary_entry?petId={petId}", "Add Diary Entry") {
+        const val petIdArg = "petId"
+        fun createRoute(petId: Long? = null): String = petId?.let { "add_diary_entry?petId=$it" } ?: "add_diary_entry"
+    }
     data object Documents : CareTailRoute("documents", "Documents")
     data object Premium : CareTailRoute("premium", "Premium")
     data object Settings : CareTailRoute("settings", "Settings")

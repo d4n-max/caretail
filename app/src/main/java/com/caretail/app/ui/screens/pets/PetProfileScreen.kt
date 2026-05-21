@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.caretail.app.data.local.entities.PetEntity
+import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.ui.components.CareTailCard
@@ -36,6 +37,7 @@ import com.caretail.app.ui.components.PrimaryCoralButton
 import com.caretail.app.ui.components.SecondaryButton
 import com.caretail.app.ui.components.SectionHeader
 import com.caretail.app.ui.components.StatusPill
+import com.caretail.app.ui.model.HealthDiaryEntryUiModel
 import com.caretail.app.ui.model.ReminderUiModel
 import com.caretail.app.ui.navigation.CareTailRoute
 import com.caretail.app.ui.theme.CareTailAccentSoft
@@ -53,12 +55,14 @@ fun PetProfileScreen(
     onNavigate: (String) -> Unit,
     petRepository: PetRepository,
     reminderRepository: ReminderRepository,
+    healthDiaryRepository: HealthDiaryRepository,
     petId: Long,
     onBack: () -> Unit,
     onAddReminder: (Long) -> Unit,
+    onAddDiaryEntry: (Long) -> Unit,
 ) {
-    val factory = remember(petRepository, reminderRepository, petId) {
-        PetProfileViewModelFactory(petRepository, reminderRepository, petId)
+    val factory = remember(petRepository, reminderRepository, healthDiaryRepository, petId) {
+        PetProfileViewModelFactory(petRepository, reminderRepository, healthDiaryRepository, petId)
     }
     val viewModel: PetProfileViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
@@ -89,7 +93,9 @@ fun PetProfileScreen(
                 else -> PetProfileContent(
                     pet = pet,
                     reminders = uiState.upcomingReminders,
+                    diaryEntries = uiState.recentDiaryEntries,
                     onAddReminder = { onAddReminder(pet.id) },
+                    onAddDiaryEntry = { onAddDiaryEntry(pet.id) },
                 )
             }
             Spacer(Modifier.height(20.dp))
@@ -101,7 +107,9 @@ fun PetProfileScreen(
 private fun PetProfileContent(
     pet: PetEntity,
     reminders: List<ReminderUiModel>,
+    diaryEntries: List<HealthDiaryEntryUiModel>,
     onAddReminder: () -> Unit,
+    onAddDiaryEntry: () -> Unit,
 ) {
     CareTailCard(modifier = Modifier.fillMaxWidth(), backgroundColor = CareTailWarmSurface) {
         Column(
@@ -140,7 +148,7 @@ private fun PetProfileContent(
     Spacer(Modifier.height(22.dp))
     UpcomingRemindersSection(reminders = reminders, onAddReminder = onAddReminder)
     Spacer(Modifier.height(12.dp))
-    EmptyProfileSection("Recent Health Diary", "Health notes will appear here.", Icons.Rounded.Favorite)
+    RecentDiarySection(entries = diaryEntries, onAddDiaryEntry = onAddDiaryEntry)
     Spacer(Modifier.height(12.dp))
     EmptyProfileSection("Documents & Records", "Documents will appear here.", Icons.Rounded.Description)
 }
@@ -172,6 +180,42 @@ private fun UpcomingRemindersSection(
                 )
                 Spacer(Modifier.height(10.dp))
                 StatusPill(reminder.type)
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+    }
+}
+
+@Composable
+private fun RecentDiarySection(
+    entries: List<HealthDiaryEntryUiModel>,
+    onAddDiaryEntry: () -> Unit,
+) {
+    SectionHeader("Recent Health Diary", icon = Icons.Rounded.Favorite, actionText = "Log health", onAction = onAddDiaryEntry)
+    Spacer(Modifier.height(12.dp))
+    if (entries.isEmpty()) {
+        CareTailCard {
+            Text(
+                "Health notes will appear here.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = CareTailTextSecondary,
+                fontWeight = FontWeight.Normal,
+            )
+        }
+    } else {
+        entries.forEach { entry ->
+            CareTailCard {
+                Text("${entry.dateLabel} at ${entry.timeLabel}", style = MaterialTheme.typography.labelLarge, color = CareTailTextSecondary)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatusPill(entry.mood, contentColor = entry.moodColor)
+                    StatusPill(entry.appetite)
+                    StatusPill(entry.energyLevel)
+                }
+                entry.notes?.let { notes ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(notes, style = MaterialTheme.typography.bodyMedium, color = CareTailTextPrimary, maxLines = 2)
+                }
             }
             Spacer(Modifier.height(10.dp))
         }

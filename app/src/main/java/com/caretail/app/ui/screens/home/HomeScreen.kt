@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.caretail.app.data.local.entities.PetEntity
+import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.ui.components.AddPetIcon
@@ -42,6 +43,7 @@ import com.caretail.app.ui.components.QuickActionCard
 import com.caretail.app.ui.components.ReminderIcon
 import com.caretail.app.ui.components.SectionHeader
 import com.caretail.app.ui.components.StatusPill
+import com.caretail.app.ui.model.HealthDiaryEntryUiModel
 import com.caretail.app.ui.model.ReminderUiModel
 import com.caretail.app.ui.navigation.CareTailRoute
 import com.caretail.app.ui.theme.CareTailAccent
@@ -61,12 +63,16 @@ fun HomeScreen(
     onNavigate: (String) -> Unit,
     petRepository: PetRepository,
     reminderRepository: ReminderRepository,
+    healthDiaryRepository: HealthDiaryRepository,
     onOpenPremium: () -> Unit,
     onAddPet: () -> Unit,
     onOpenPetProfile: (Long) -> Unit,
     onAddReminder: () -> Unit,
+    onAddDiaryEntry: () -> Unit,
 ) {
-    val factory = remember(petRepository, reminderRepository) { HomeViewModelFactory(petRepository, reminderRepository) }
+    val factory = remember(petRepository, reminderRepository, healthDiaryRepository) {
+        HomeViewModelFactory(petRepository, reminderRepository, healthDiaryRepository)
+    }
     val viewModel: HomeViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
 
@@ -131,7 +137,7 @@ fun HomeScreen(
                     },
                 )
                 QuickActionCard("Reminder", ReminderIcon, Modifier.weight(1f), onClick = onAddReminder)
-                QuickActionCard("Log Health", HealthIcon, Modifier.weight(1f), onClick = { onNavigate(CareTailRoute.Diary.route) })
+                QuickActionCard("Log Health", HealthIcon, Modifier.weight(1f), onClick = onAddDiaryEntry)
                 QuickActionCard("Document", DocumentIcon, Modifier.weight(1f), onClick = { onNavigate(CareTailRoute.Settings.route) })
             }
             Spacer(Modifier.height(24.dp))
@@ -156,6 +162,12 @@ fun HomeScreen(
                     Spacer(Modifier.height(10.dp))
                 }
             }
+            Spacer(Modifier.height(18.dp))
+            SectionHeader("Latest Health Note")
+            Spacer(Modifier.height(12.dp))
+            uiState.latestDiaryEntry?.let { entry ->
+                LatestDiaryCard(entry = entry)
+            } ?: EmptySmallCard("Log a health note")
             Spacer(Modifier.height(18.dp))
             CareTailCard(backgroundColor = CareTailWarmSurface) {
                 Text("CareTail Premium", style = MaterialTheme.typography.titleLarge, color = CareTailPrimaryDark)
@@ -225,6 +237,22 @@ private fun CareTaskCard(reminder: ReminderUiModel) {
                 )
             },
         )
+    }
+}
+
+@Composable
+private fun LatestDiaryCard(entry: HealthDiaryEntryUiModel) {
+    CareTailCard {
+        Text("${entry.petName} - ${entry.dateLabel}", style = MaterialTheme.typography.labelLarge, color = CareTailTextSecondary)
+        Spacer(Modifier.height(6.dp))
+        StatusPill(text = entry.mood, contentColor = entry.moodColor)
+        entry.notes?.let { notes ->
+            Spacer(Modifier.height(8.dp))
+            Text(notes, style = MaterialTheme.typography.bodyMedium, color = CareTailTextPrimary, maxLines = 2)
+        } ?: entry.symptoms?.let { symptoms ->
+            Spacer(Modifier.height(8.dp))
+            Text(symptoms, style = MaterialTheme.typography.bodyMedium, color = CareTailTextPrimary, maxLines = 2)
+        }
     }
 }
 

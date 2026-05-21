@@ -29,6 +29,15 @@ fun endOfTodayMillis(nowMillis: Long = System.currentTimeMillis()): Long =
 fun isToday(millis: Long, nowMillis: Long = System.currentTimeMillis()): Boolean =
     millis in startOfTodayMillis(nowMillis)..endOfTodayMillis(nowMillis)
 
+fun isYesterday(millis: Long, nowMillis: Long = System.currentTimeMillis()): Boolean {
+    val yesterdayStart = Calendar.getInstance().apply {
+        timeInMillis = startOfTodayMillis(nowMillis)
+        add(Calendar.DAY_OF_YEAR, -1)
+    }.timeInMillis
+    val yesterdayEnd = startOfTodayMillis(nowMillis) - 1
+    return millis in yesterdayStart..yesterdayEnd
+}
+
 fun isOverdue(millis: Long, isCompleted: Boolean, nowMillis: Long = System.currentTimeMillis()): Boolean =
     !isCompleted && millis < nowMillis
 
@@ -44,6 +53,12 @@ fun defaultReminderDueAtMillis(nowMillis: Long = System.currentTimeMillis()): Lo
 fun formatDate(millis: Long): String = SimpleDateFormat(DatePattern, Locale.getDefault()).format(millis)
 
 fun formatTime(millis: Long): String = SimpleDateFormat(TimePattern, Locale.getDefault()).format(millis)
+
+fun formatDiaryDate(millis: Long, nowMillis: Long = System.currentTimeMillis()): String = when {
+    isToday(millis, nowMillis) -> "Today"
+    isYesterday(millis, nowMillis) -> "Yesterday"
+    else -> formatDate(millis)
+}
 
 fun formatInputDate(millis: Long): String = SimpleDateFormat(InputDatePattern, Locale.getDefault()).format(millis)
 
