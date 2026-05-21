@@ -43,6 +43,18 @@ fun CareTailNavGraph(
             restoreState = true
         }
     }
+    val closePremium: () -> Unit = {
+        if (navController.previousBackStackEntry != null) {
+            navController.popBackStack()
+        } else {
+            navController.navigate(CareTailRoute.Home.route) {
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = false
+                }
+                launchSingleTop = true
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -335,14 +347,8 @@ fun CareTailNavGraph(
             )
             PremiumScreen(
                 reason = reason,
-                onBack = { navController.popBackStack() },
-                onMaybeLater = {
-                    if (!navController.popBackStack()) {
-                        navController.navigate(CareTailRoute.Home.route) {
-                            launchSingleTop = true
-                        }
-                    }
-                },
+                onClose = closePremium,
+                onMaybeLater = closePremium,
             )
         }
         composable(CareTailRoute.Settings.route) {
