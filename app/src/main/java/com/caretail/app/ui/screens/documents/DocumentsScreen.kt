@@ -115,7 +115,7 @@ fun DocumentsScreen(
         onNavigate = onNavigate,
         selectedBottomRoute = CareTailRoute.Settings.route,
         topBar = { CareTailTopBar(title = "Documents") },
-        floatingActionButton = { CoralFab(onClick = onAddDocument) },
+        floatingActionButton = { CoralFab(onClick = onAddDocument, contentDescription = "Add Document") },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -195,7 +195,7 @@ private fun EmptyDocumentsState(onAddDocument: () -> Unit) {
         Text("No documents yet", style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Add vaccine records, prescriptions, insurance files, or vet documents.",
+            "Keep vaccine records, prescriptions, insurance files, and vet documents in one place.",
             style = MaterialTheme.typography.bodyLarge,
             color = CareTailTextSecondary,
         )
@@ -214,7 +214,7 @@ private fun DocumentCard(
     CareTailCard(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                Icon(Icons.Rounded.Description, contentDescription = null, tint = CareTailAccent)
+                Icon(Icons.Rounded.Description, contentDescription = "Document record", tint = CareTailAccent)
                 Column {
                     Text(document.title, style = MaterialTheme.typography.titleMedium, color = CareTailTextPrimary)
                     Text(
@@ -226,13 +226,13 @@ private fun DocumentCard(
             }
             Row {
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = CareTailTextSecondary)
+                    Icon(Icons.Rounded.Edit, contentDescription = "Edit document", tint = CareTailTextSecondary)
                 }
                 IconButton(onClick = onOpen) {
-                    Icon(Icons.Rounded.OpenInNew, contentDescription = "Open", tint = CareTailAccent)
+                    Icon(Icons.Rounded.OpenInNew, contentDescription = "Open document", tint = CareTailAccent)
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = CareTailTextSecondary)
+                    Icon(Icons.Rounded.Delete, contentDescription = "Delete document", tint = CareTailTextSecondary)
                 }
             }
         }

@@ -96,7 +96,7 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 14.dp),
         ) {
-            Text("Good morning, Sarah!", style = MaterialTheme.typography.headlineMedium, color = CareTailTextPrimary)
+            Text("Welcome back", style = MaterialTheme.typography.headlineMedium, color = CareTailTextPrimary)
             Text(
                 "Here is the latest on your furry friends.",
                 style = MaterialTheme.typography.bodyLarge,
@@ -168,7 +168,7 @@ fun HomeScreen(
             Spacer(Modifier.height(12.dp))
             uiState.latestDiaryEntry?.let { entry ->
                 LatestDiaryCard(entry = entry)
-            } ?: EmptySmallCard("Log a health note")
+            } ?: EmptySmallCard("Log your first health note")
             Spacer(Modifier.height(18.dp))
             CareTailCard(backgroundColor = CareTailWarmSurface) {
                 Text("CareTail Premium", style = MaterialTheme.typography.titleLarge, color = CareTailPrimaryDark)
@@ -208,10 +208,10 @@ private fun PetSummaryCard(
 @Composable
 private fun AddFirstPetCard(onClick: () -> Unit) {
     CareTailCard(modifier = Modifier.width(280.dp), backgroundColor = CareTailWarmSurface) {
-        Text("Add your first pet", style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
+        Text("No pets yet", style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
         Spacer(Modifier.height(6.dp))
         Text(
-            "Create a profile to track reminders, health notes, and records.",
+            "Create your first pet profile to track care reminders, health notes, and records.",
             style = MaterialTheme.typography.bodyMedium,
             color = CareTailTextSecondary,
         )

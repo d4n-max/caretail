@@ -27,6 +27,7 @@ import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
 import com.caretail.app.ui.components.CoralFab
+import com.caretail.app.ui.components.EmptyStateCard
 import com.caretail.app.ui.components.PetAvatar
 import com.caretail.app.ui.components.PrimaryCoralButton
 import com.caretail.app.ui.components.SectionHeader
@@ -60,7 +61,7 @@ fun PetsScreen(
         onNavigate = onNavigate,
         selectedBottomRoute = CareTailRoute.Pets.route,
         topBar = { CareTailTopBar(title = "Pets") },
-        floatingActionButton = { CoralFab(onClick = addPetAction) },
+        floatingActionButton = { CoralFab(onClick = addPetAction, contentDescription = "Add Pet") },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -91,17 +92,12 @@ fun PetsScreen(
 
 @Composable
 private fun EmptyPetsCard(onAddPet: () -> Unit) {
-    CareTailCard(modifier = Modifier.fillMaxWidth(), backgroundColor = CareTailWarmSurface) {
-        Text("Add your first pet", style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Create a profile to track reminders, health notes, and records.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = CareTailTextSecondary,
-        )
-        Spacer(Modifier.height(18.dp))
-        PrimaryCoralButton(text = "Add Pet", onClick = onAddPet)
-    }
+    EmptyStateCard(
+        title = "No pets yet",
+        message = "Create your first pet profile to track care reminders, health notes, and records.",
+        actionText = "Add Pet",
+        onAction = onAddPet,
+    )
 }
 
 @Composable

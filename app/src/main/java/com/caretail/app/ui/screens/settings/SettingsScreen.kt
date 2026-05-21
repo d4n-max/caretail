@@ -93,7 +93,7 @@ fun SettingsScreen(
             SectionHeader("Privacy")
             Spacer(Modifier.height(10.dp))
             CareTailCard(modifier = Modifier.fillMaxWidth()) {
-                InfoRow("Privacy Policy", "Placeholder for future policy", Icons.Rounded.PrivacyTip)
+                InfoRow("Privacy Policy", "Privacy details will be added before release", Icons.Rounded.PrivacyTip)
                 Spacer(Modifier.height(12.dp))
                 InfoRow("No cloud sync", "MVP data stays on this device", Icons.Rounded.CloudOff)
             }
@@ -101,9 +101,9 @@ fun SettingsScreen(
             SectionHeader("Data")
             Spacer(Modifier.height(10.dp))
             CareTailCard(modifier = Modifier.fillMaxWidth()) {
-                InfoRow("Export Data", "Future local export placeholder", Icons.Rounded.UploadFile)
+                InfoRow("Export Data", "Local data export is planned for a later version", Icons.Rounded.UploadFile)
                 Spacer(Modifier.height(12.dp))
-                InfoRow("Delete Local Data", "Placeholder only", Icons.Rounded.DeleteOutline)
+                InfoRow("Delete Local Data", "Not available in this MVP", Icons.Rounded.DeleteOutline)
             }
             Spacer(Modifier.height(20.dp))
             SectionHeader("About")

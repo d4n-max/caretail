@@ -97,7 +97,7 @@ fun RemindersScreen(
         onNavigate = onNavigate,
         selectedBottomRoute = CareTailRoute.Reminders.route,
         topBar = { CareTailTopBar(title = "Reminders") },
-        floatingActionButton = { CoralFab(onClick = onAddReminder) },
+        floatingActionButton = { CoralFab(onClick = onAddReminder, contentDescription = "Add Reminder") },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -219,7 +219,7 @@ private fun ReminderCard(
             trailing = {
                 Row {
                     IconButton(onClick = onEdit) {
-                        Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = CareTailTextSecondary)
+                        Icon(Icons.Rounded.Edit, contentDescription = "Edit reminder", tint = CareTailTextSecondary)
                     }
                     IconButton(onClick = onToggle) {
                         Icon(
@@ -229,7 +229,7 @@ private fun ReminderCard(
                         )
                     }
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = CareTailTextSecondary)
+                        Icon(Icons.Rounded.Delete, contentDescription = "Delete reminder", tint = CareTailTextSecondary)
                     }
                 }
             },

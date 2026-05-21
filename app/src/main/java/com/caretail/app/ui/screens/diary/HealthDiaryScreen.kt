@@ -99,7 +99,7 @@ fun HealthDiaryScreen(
                 onSettings = { onNavigate(CareTailRoute.Settings.route) },
             )
         },
-        floatingActionButton = { CoralFab(onClick = onAddDiaryEntry) },
+        floatingActionButton = { CoralFab(onClick = onAddDiaryEntry, contentDescription = "Log Health") },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -198,10 +198,10 @@ private fun DiaryEntryCard(
             Row {
                 Text(entry.timeLabel, style = MaterialTheme.typography.bodyMedium, color = CareTailTextPrimary)
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = CareTailTextSecondary)
+                    Icon(Icons.Rounded.Edit, contentDescription = "Edit health note", tint = CareTailTextSecondary)
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = CareTailTextSecondary)
+                    Icon(Icons.Rounded.Delete, contentDescription = "Delete health note", tint = CareTailTextSecondary)
                 }
             }
         }

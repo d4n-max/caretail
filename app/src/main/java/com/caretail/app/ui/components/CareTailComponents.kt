@@ -137,7 +137,7 @@ fun CareTailTopBar(
                     Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
                 }
                 showAvatar -> Box(Modifier.padding(start = 16.dp)) {
-                    PetAvatar(name = "Sarah", size = 40.dp, backgroundColor = CareTailWarmSurface)
+                    PetAvatar(name = "CareTail", size = 40.dp, backgroundColor = CareTailWarmSurface)
                 }
             }
         },
@@ -357,7 +357,7 @@ fun QuickActionCard(
                     .background(CareTailPrimary.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, contentDescription = null, tint = CareTailPrimaryDark, modifier = Modifier.size(24.dp))
+                Icon(icon, contentDescription = title, tint = CareTailPrimaryDark, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.height(10.dp))
             Text(
@@ -496,14 +496,36 @@ fun InfoRow(
 }
 
 @Composable
-fun CoralFab(onClick: () -> Unit) {
+fun CoralFab(
+    onClick: () -> Unit,
+    contentDescription: String = "Add",
+) {
     FloatingActionButton(
         onClick = onClick,
         containerColor = CareTailAccent,
         contentColor = Color.White,
         shape = RoundedCornerShape(22.dp),
     ) {
-        Icon(Icons.Rounded.Add, contentDescription = "Add")
+        Icon(Icons.Rounded.Add, contentDescription = contentDescription)
+    }
+}
+
+@Composable
+fun EmptyStateCard(
+    title: String,
+    message: String,
+    modifier: Modifier = Modifier,
+    actionText: String? = null,
+    onAction: () -> Unit = {},
+) {
+    CareTailCard(modifier = modifier.fillMaxWidth(), backgroundColor = CareTailWarmSurface) {
+        Text(title, style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
+        Spacer(Modifier.height(8.dp))
+        Text(message, style = MaterialTheme.typography.bodyLarge, color = CareTailTextSecondary)
+        if (actionText != null) {
+            Spacer(Modifier.height(18.dp))
+            PrimaryCoralButton(text = actionText, onClick = onAction)
+        }
     }
 }
 

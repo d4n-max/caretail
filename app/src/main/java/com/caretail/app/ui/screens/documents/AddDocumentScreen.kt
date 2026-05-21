@@ -150,7 +150,7 @@ fun AddDocumentScreen(
                     uiState.fileName?.let { name ->
                         Spacer(Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Rounded.AttachFile, contentDescription = null, tint = CareTailAccent)
+                            Icon(Icons.Rounded.AttachFile, contentDescription = "Selected file", tint = CareTailAccent)
                             Text(name, style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
                         }
                     }

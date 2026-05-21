@@ -219,8 +219,8 @@ private fun PhotoPlaceholder() {
         contentAlignment = Alignment.Center,
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.PhotoCamera, contentDescription = null, tint = CareTailAccent, modifier = Modifier.size(24.dp))
-            Text("Photo picker coming later", style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
+            Icon(Icons.Rounded.PhotoCamera, contentDescription = "Photo attachment", tint = CareTailAccent, modifier = Modifier.size(24.dp))
+            Text("Photo attachment not available in this MVP", style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
         }
     }
 }

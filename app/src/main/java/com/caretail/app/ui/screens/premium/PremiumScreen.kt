@@ -69,7 +69,7 @@ fun PremiumScreen(
                 .background(CareTailPrimary),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(StarIcon, contentDescription = null, tint = CareTailPrimaryDark, modifier = Modifier.size(52.dp))
+            Icon(StarIcon, contentDescription = "Premium", tint = CareTailPrimaryDark, modifier = Modifier.size(52.dp))
         }
         Spacer(Modifier.height(24.dp))
         Text(
