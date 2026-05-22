@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.caretail.app.BuildConfig
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetDocumentRepository
@@ -82,6 +83,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val isPremium by PremiumManager.isPremium.collectAsState()
+    val isPremiumTestMode by PremiumManager.isPremiumTestMode.collectAsState()
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
@@ -164,24 +166,26 @@ fun SettingsScreen(
             SettingsSection(title = "Premium") {
                 SettingsRow(
                     title = "Manage Premium",
-                    subtitle = "Review Premium benefits",
+                    subtitle = if (isPremium) "Premium active" else "Free plan",
                     icon = Icons.Rounded.Star,
                     onClick = onOpenPremium,
                 )
             }
 
-            SettingsSection(title = "Developer / Testing") {
-                SettingsRow(
-                    title = "Premium test mode",
-                    subtitle = "Temporarily toggle until Google Play Billing is added.",
-                    icon = Icons.Rounded.Code,
-                    trailing = {
-                        Switch(
-                            checked = isPremium,
-                            onCheckedChange = PremiumManager::setPremiumForTesting,
-                        )
-                    },
-                )
+            if (BuildConfig.DEBUG) {
+                SettingsSection(title = "Developer / Testing") {
+                    SettingsRow(
+                        title = "Premium test mode",
+                        subtitle = "Debug-only entitlement toggle for testing gates.",
+                        icon = Icons.Rounded.Code,
+                        trailing = {
+                            Switch(
+                                checked = isPremiumTestMode,
+                                onCheckedChange = PremiumManager::setPremiumForTesting,
+                            )
+                        },
+                    )
+                }
             }
 
             SettingsSection(title = "Privacy") {

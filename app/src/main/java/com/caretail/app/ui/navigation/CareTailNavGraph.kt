@@ -347,6 +347,7 @@ fun CareTailNavGraph(
             )
             PremiumScreen(
                 reason = reason,
+                billingRepository = appContainer.billingRepository,
                 onClose = closePremium,
                 onMaybeLater = closePremium,
             )

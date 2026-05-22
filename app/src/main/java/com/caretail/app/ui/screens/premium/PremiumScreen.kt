@@ -24,7 +24,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +40,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.caretail.app.R
+import com.caretail.app.billing.BillingRepository
+import com.caretail.app.billing.PremiumPlan
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.PremiumBenefitRow
@@ -49,22 +53,28 @@ import com.caretail.app.ui.theme.CareTailPrimary
 import com.caretail.app.ui.theme.CareTailPrimaryDark
 import com.caretail.app.ui.theme.CareTailTextPrimary
 import com.caretail.app.ui.theme.CareTailTextSecondary
-
-private enum class PremiumPlan(val label: String) {
-    Monthly("Monthly"),
-    Yearly("Yearly"),
-}
+import com.caretail.app.util.findActivity
 
 @Composable
 fun PremiumScreen(
     reason: PremiumUpsellReason?,
+    billingRepository: BillingRepository,
     onClose: () -> Unit,
     onMaybeLater: () -> Unit = onClose,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val billingState by billingRepository.uiState.collectAsState()
     var selectedPlan by remember { mutableStateOf(PremiumPlan.Yearly) }
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    val monthlyProduct = billingState.products.firstOrNull { it.plan == PremiumPlan.Monthly }
+    val yearlyProduct = billingState.products.firstOrNull { it.plan == PremiumPlan.Yearly }
 
     BackHandler(onBack = onClose)
+
+    LaunchedEffect(billingRepository) {
+        billingRepository.startConnection()
+        billingRepository.messages.collect { message -> feedbackMessage = message }
+    }
 
     feedbackMessage?.let { message ->
         AlertDialog(
@@ -144,14 +154,14 @@ fun PremiumScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 PricingCard(
                     title = "Monthly",
-                    price = "$4.99/month",
+                    price = monthlyProduct?.price ?: PremiumPlan.Monthly.fallbackPrice,
                     selected = selectedPlan == PremiumPlan.Monthly,
                     modifier = Modifier.weight(1f),
                     onClick = { selectedPlan = PremiumPlan.Monthly },
                 )
                 PricingCard(
                     title = "Yearly",
-                    price = "$29.99/year",
+                    price = yearlyProduct?.price ?: PremiumPlan.Yearly.fallbackPrice,
                     detail = "Only $2.49/mo",
                     badge = "Best Value",
                     selected = selectedPlan == PremiumPlan.Yearly,
@@ -159,11 +169,34 @@ fun PremiumScreen(
                     onClick = { selectedPlan = PremiumPlan.Yearly },
                 )
             }
+            billingState.errorMessage?.let { message ->
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = CareTailTextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            if (billingState.isPremium) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Premium active",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = CareTailPrimaryDark,
+                    textAlign = TextAlign.Center,
+                )
+            }
             Spacer(Modifier.height(28.dp))
             PrimaryCoralButton(
-                text = "Start Premium",
+                text = if (billingState.isLoading) "Loading Premium..." else "Start Premium",
                 onClick = {
-                    feedbackMessage = "Billing will be added in a later version.\n\nSelected plan: ${selectedPlan.label}"
+                    val activity = context.findActivity()
+                    if (activity == null) {
+                        feedbackMessage = "Premium could not be started from this screen. Please try again."
+                    } else {
+                        billingRepository.launchPurchase(activity, selectedPlan)
+                    }
                 },
             )
             Spacer(Modifier.height(8.dp))
@@ -178,9 +211,7 @@ fun PremiumScreen(
                 TextActionButton(text = "Maybe later", onClick = onMaybeLater)
                 TextActionButton(
                     text = "Restore purchase",
-                    onClick = {
-                        feedbackMessage = "Restore purchase will be available when billing is added."
-                    },
+                    onClick = billingRepository::restorePurchases,
                 )
             }
         }

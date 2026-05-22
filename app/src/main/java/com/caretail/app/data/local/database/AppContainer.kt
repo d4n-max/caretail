@@ -1,6 +1,7 @@
 package com.caretail.app.data.local.database
 
 import android.content.Context
+import com.caretail.app.billing.BillingRepository
 import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetDocumentRepository
 import com.caretail.app.data.repository.PetRepository
@@ -16,4 +17,9 @@ class AppContainer(context: Context) {
     val reminderNotificationScheduler = ReminderNotificationScheduler(appContext)
     val healthDiaryRepository = HealthDiaryRepository(database.healthDiaryDao())
     val petDocumentRepository = PetDocumentRepository(database.petDocumentDao())
+    val billingRepository = BillingRepository(appContext)
+
+    init {
+        billingRepository.startConnection()
+    }
 }
