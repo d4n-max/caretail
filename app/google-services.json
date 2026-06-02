@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "163673849900",
+    "project_id": "caretail-21d0a",
+    "storage_bucket": "caretail-21d0a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:163673849900:android:a2420badea8c395dcc5189",
+        "android_client_info": {
+          "package_name": "com.caretail.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwTNH35-h9p4bhSXqegrO1NSNPXD8H2Qs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

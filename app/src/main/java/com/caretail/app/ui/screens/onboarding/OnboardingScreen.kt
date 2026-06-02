@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,16 +31,38 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.caretail.app.R
+import com.caretail.app.auth.AuthUiState
 import com.caretail.app.ui.components.PrimaryCoralButton
+import com.caretail.app.ui.components.SecondaryCareTailButton
+import com.caretail.app.ui.components.TextActionButton
 import com.caretail.app.ui.theme.CareTailBackground
 import com.caretail.app.ui.theme.CareTailPrimary
 import com.caretail.app.ui.theme.CareTailPrimaryDark
 import com.caretail.app.ui.theme.CareTailTextPrimary
 import com.caretail.app.ui.theme.CareTailTextSecondary
 import com.caretail.app.ui.theme.CareTailWarmSurface
+import com.caretail.app.util.findActivity
 
 @Composable
-fun OnboardingScreen(onGetStarted: () -> Unit) {
+fun OnboardingScreen(
+    authUiState: AuthUiState,
+    onGoogleSignIn: (android.app.Activity?) -> Unit,
+    onClearAuthError: () -> Unit,
+    onGetStarted: () -> Unit,
+) {
+    val context = LocalContext.current
+
+    authUiState.errorMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = onClearAuthError,
+            confirmButton = {
+                TextActionButton(text = "OK", onClick = onClearAuthError)
+            },
+            title = { Text("Google Sign-In") },
+            text = { Text(message) },
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -83,12 +107,19 @@ fun OnboardingScreen(onGetStarted: () -> Unit) {
         )
         Spacer(Modifier.height(28.dp))
         PrimaryCoralButton(text = "Get started", onClick = onGetStarted)
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
+        SecondaryCareTailButton(
+            text = if (authUiState.isLoading) "Signing in..." else "Continue with Google",
+            enabled = !authUiState.isLoading,
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { onGoogleSignIn(context.findActivity()) },
+        )
+        Spacer(Modifier.height(14.dp))
         Text(
             text = buildAnnotatedString {
-                append("Already have an account? ")
+                append("Login is optional. ")
                 withStyle(SpanStyle(color = CareTailPrimaryDark, fontWeight = FontWeight.Bold)) {
-                    append("Log in")
+                    append("You can continue locally.")
                 }
             },
             style = MaterialTheme.typography.bodyLarge,

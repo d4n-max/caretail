@@ -1,6 +1,7 @@
 package com.caretail.app.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -10,6 +11,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.auth.AuthViewModel
+import com.caretail.app.auth.AuthViewModelFactory
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.local.database.AppContainer
 import com.caretail.app.ui.screens.diary.AddDiaryEntryScreen
@@ -33,6 +37,12 @@ fun CareTailNavGraph(
 ) {
     val context = LocalContext.current
     val appContainer = remember(context) { AppContainer(context.applicationContext) }
+    val authViewModel: AuthViewModel = viewModel(
+        factory = remember(appContainer.authRepository) {
+            AuthViewModelFactory(appContainer.authRepository)
+        },
+    )
+    val authUiState = authViewModel.uiState.collectAsState().value
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val onBottomNavigate: (String) -> Unit = { route ->
         navController.navigate(route) {
@@ -62,7 +72,12 @@ fun CareTailNavGraph(
         modifier = modifier,
     ) {
         composable(CareTailRoute.Onboarding.route) {
-            OnboardingScreen(onGetStarted = { navController.navigate(CareTailRoute.Home.route) })
+            OnboardingScreen(
+                authUiState = authUiState,
+                onGoogleSignIn = authViewModel::signInWithGoogle,
+                onClearAuthError = authViewModel::clearError,
+                onGetStarted = { navController.navigate(CareTailRoute.Home.route) },
+            )
         }
         composable(CareTailRoute.Home.route) {
             HomeScreen(
@@ -363,6 +378,10 @@ fun CareTailNavGraph(
                 healthDiaryRepository = appContainer.healthDiaryRepository,
                 petDocumentRepository = appContainer.petDocumentRepository,
                 reminderNotificationScheduler = appContainer.reminderNotificationScheduler,
+                authUiState = authUiState,
+                onGoogleSignIn = authViewModel::signInWithGoogle,
+                onSignOut = authViewModel::signOut,
+                onClearAuthError = authViewModel::clearError,
                 onLocalDataDeleted = {
                     navController.navigate(CareTailRoute.Home.route) {
                         popUpTo(CareTailRoute.Home.route) {

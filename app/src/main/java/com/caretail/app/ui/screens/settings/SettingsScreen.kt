@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.caretail.app.auth.AuthUiState
 import com.caretail.app.BuildConfig
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.data.repository.HealthDiaryRepository
@@ -65,6 +66,7 @@ import com.caretail.app.ui.theme.CareTailPrimaryDark
 import com.caretail.app.ui.theme.CareTailTextPrimary
 import com.caretail.app.ui.theme.CareTailTextSecondary
 import com.caretail.app.ui.theme.CareTailWarmSurface
+import com.caretail.app.util.findActivity
 import kotlinx.coroutines.launch
 
 @Composable
@@ -78,6 +80,10 @@ fun SettingsScreen(
     healthDiaryRepository: HealthDiaryRepository,
     petDocumentRepository: PetDocumentRepository,
     reminderNotificationScheduler: ReminderNotificationScheduler,
+    authUiState: AuthUiState,
+    onGoogleSignIn: (android.app.Activity?) -> Unit,
+    onSignOut: () -> Unit,
+    onClearAuthError: () -> Unit,
     onLocalDataDeleted: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -87,6 +93,17 @@ fun SettingsScreen(
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
+
+    authUiState.errorMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = onClearAuthError,
+            confirmButton = {
+                TextActionButton(text = "OK", onClick = onClearAuthError)
+            },
+            title = { Text("Google Sign-In") },
+            text = { Text(message) },
+        )
+    }
 
     feedbackMessage?.let { message ->
         AlertDialog(
@@ -170,6 +187,34 @@ fun SettingsScreen(
                     icon = Icons.Rounded.Star,
                     onClick = onOpenPremium,
                 )
+            }
+
+            SettingsSection(title = "Account") {
+                val user = authUiState.user
+                if (user == null) {
+                    SettingsRow(
+                        title = if (authUiState.isLoading) "Signing in..." else "Sign in with Google",
+                        subtitle = "Optional. Cloud sync is not enabled yet.",
+                        icon = Icons.Rounded.Info,
+                        onClick = {
+                            if (!authUiState.isLoading) {
+                                onGoogleSignIn(context.findActivity())
+                            }
+                        },
+                    )
+                } else {
+                    SettingsRow(
+                        title = user.displayName ?: "Signed in",
+                        subtitle = user.email ?: "Your data remains stored on this device in the MVP.",
+                        icon = Icons.Rounded.Info,
+                    )
+                    SettingsRow(
+                        title = "Sign out",
+                        subtitle = "Your data remains stored on this device in the MVP.",
+                        icon = Icons.Rounded.CloudOff,
+                        onClick = onSignOut,
+                    )
+                }
             }
 
             if (BuildConfig.DEBUG) {
