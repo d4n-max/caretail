@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 
 val ReminderTypes = listOf("Vaccine", "Medication", "Vet Visit", "Grooming", "Food", "Other")
 val RepeatTypes = listOf("None", "Daily", "Weekly", "Monthly", "Yearly")
+val PremiumRepeatTypes = listOf("Monthly", "Yearly")
 
 data class AddReminderUiState(
     val pets: List<PetEntity> = emptyList(),
@@ -106,11 +107,33 @@ class AddReminderViewModel(
 
     fun onTimeChanged(value: String) = update { copy(time = value, validationError = null, generalError = null) }
 
-    fun onRepeatTypeSelected(value: String) = update { copy(repeatType = value, validationError = null, generalError = null, upsellReason = null) }
+    fun onRepeatTypeSelected(value: String) {
+        if (value in PremiumRepeatTypes && !PremiumManager.canUseAdvancedRecurringReminders()) {
+            update {
+                copy(
+                    validationError = null,
+                    generalError = null,
+                    upsellReason = PremiumUpsellReason.AdvancedRepeatLocked,
+                )
+            }
+            return
+        }
+        update { copy(repeatType = value, validationError = null, generalError = null, upsellReason = null) }
+    }
 
     fun onNotesChanged(value: String) = update { copy(notes = value) }
 
-    fun validateBeforePermissionRequest(): Boolean = validate(uiState.value) != null
+    fun onPremiumNavigationConsumed() = update { copy(upsellReason = null) }
+
+    fun validateBeforePermissionRequest(): Boolean {
+        val state = uiState.value
+        if (validate(state) == null) return false
+        if (state.repeatType in PremiumRepeatTypes && !PremiumManager.canUseAdvancedRecurringReminders()) {
+            update { copy(upsellReason = PremiumUpsellReason.AdvancedRepeatLocked) }
+            return false
+        }
+        return true
+    }
 
     fun saveReminder(notificationPermissionGranted: Boolean) {
         val state = uiState.value
@@ -124,7 +147,7 @@ class AddReminderViewModel(
                     update { copy(isLoading = false, upsellReason = PremiumUpsellReason.ReminderLimit) }
                     return@launch
                 }
-                if (state.repeatType in listOf("Monthly", "Yearly") && !PremiumManager.canUseAdvancedRecurringReminders()) {
+                if (state.repeatType in PremiumRepeatTypes && !PremiumManager.canUseAdvancedRecurringReminders()) {
                     update { copy(isLoading = false, upsellReason = PremiumUpsellReason.AdvancedRepeatLocked) }
                     return@launch
                 }

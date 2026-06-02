@@ -331,6 +331,7 @@ fun ReminderTypeChip(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     leadingIcon: ImageVector? = null,
+    trailingBadgeText: String? = null,
     onClick: () -> Unit = {},
 ) {
     SelectableCareTailChip(
@@ -339,6 +340,7 @@ fun ReminderTypeChip(
         modifier = modifier,
         enabled = enabled,
         leadingIcon = leadingIcon,
+        trailingBadgeText = trailingBadgeText,
         onClick = onClick,
     )
 }
@@ -388,6 +390,7 @@ fun SelectableCareTailChip(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     leadingIcon: ImageVector? = null,
+    trailingBadgeText: String? = null,
     onClick: () -> Unit = {},
 ) {
     val backgroundColor = if (selected) CareTailPrimary.copy(alpha = 0.24f) else CareTailChipBackground
@@ -417,6 +420,23 @@ fun SelectableCareTailChip(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
             )
+            trailingBadgeText?.let { badgeText ->
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(CareTailAccent)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = badgeText,
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }

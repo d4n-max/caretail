@@ -48,6 +48,7 @@ import com.caretail.app.ui.theme.CareTailTextSecondary
 import com.caretail.app.ui.theme.CareTailWarmSurface
 import com.caretail.app.ui.viewmodel.AddReminderViewModel
 import com.caretail.app.ui.viewmodel.AddReminderViewModelFactory
+import com.caretail.app.ui.viewmodel.PremiumRepeatTypes
 import com.caretail.app.ui.viewmodel.ReminderTypes
 import com.caretail.app.ui.viewmodel.RepeatTypes
 
@@ -99,7 +100,10 @@ fun AddReminderScreen(
         }
     }
     LaunchedEffect(uiState.upsellReason) {
-        uiState.upsellReason?.let(onOpenPremium)
+        uiState.upsellReason?.let { reason ->
+            onOpenPremium(reason)
+            viewModel.onPremiumNavigationConsumed()
+        }
     }
 
     CareTailScaffold(
@@ -180,6 +184,7 @@ fun AddReminderScreen(
                     ReminderChipRows(
                         values = RepeatTypes,
                         selectedValue = uiState.repeatType,
+                        premiumValues = PremiumRepeatTypes,
                         onSelected = viewModel::onRepeatTypeSelected,
                     )
                     Spacer(Modifier.height(16.dp))
@@ -233,6 +238,7 @@ private fun EmptyPetsState(onAddPet: () -> Unit) {
 private fun ReminderChipRows(
     values: List<String>,
     selectedValue: String,
+    premiumValues: List<String> = emptyList(),
     onSelected: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -242,6 +248,7 @@ private fun ReminderChipRows(
                     ReminderTypeChip(
                         text = value,
                         selected = selectedValue == value,
+                        trailingBadgeText = if (value in premiumValues) "Premium" else null,
                         onClick = { onSelected(value) },
                     )
                 }

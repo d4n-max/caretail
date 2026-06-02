@@ -19,6 +19,7 @@ captures/
 *.apk
 *.aab
 *.apks
+app/release/
 
 # Keystores and secrets
 *.jks
