@@ -1,33 +1,50 @@
 package com.caretail.app.ui.screens.reminders
 
 import android.Manifest
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.Notes
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -44,6 +61,10 @@ import com.caretail.app.ui.components.SectionHeader
 import com.caretail.app.ui.components.careTailOutlinedTextFieldColors
 import com.caretail.app.ui.navigation.CareTailRoute
 import com.caretail.app.ui.theme.CareTailAccent
+import com.caretail.app.ui.theme.CareTailCard
+import com.caretail.app.ui.theme.CareTailPrimary
+import com.caretail.app.ui.theme.CareTailPrimaryDark
+import com.caretail.app.ui.theme.CareTailTextPrimary
 import com.caretail.app.ui.theme.CareTailTextSecondary
 import com.caretail.app.ui.theme.CareTailWarmSurface
 import com.caretail.app.ui.viewmodel.AddReminderViewModel
@@ -51,6 +72,8 @@ import com.caretail.app.ui.viewmodel.AddReminderViewModelFactory
 import com.caretail.app.ui.viewmodel.PremiumRepeatTypes
 import com.caretail.app.ui.viewmodel.ReminderTypes
 import com.caretail.app.ui.viewmodel.RepeatTypes
+import com.caretail.app.util.formatDate
+import java.util.Calendar
 
 @Composable
 fun AddReminderScreen(
@@ -91,6 +114,29 @@ fun AddReminderScreen(
         } else {
             viewModel.saveReminder(notificationPermissionGranted = true)
         }
+    }
+
+    fun showDatePicker() {
+        val selectedDate = Calendar.getInstance().apply {
+            timeInMillis = uiState.selectedDateMillis
+        }
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth -> viewModel.onDateSelected(year, month, dayOfMonth) },
+            selectedDate.get(Calendar.YEAR),
+            selectedDate.get(Calendar.MONTH),
+            selectedDate.get(Calendar.DAY_OF_MONTH),
+        ).show()
+    }
+
+    fun showTimePicker() {
+        TimePickerDialog(
+            context,
+            { _, hourOfDay, minute -> viewModel.onTimeSelected(hourOfDay, minute) },
+            uiState.selectedHour,
+            uiState.selectedMinute,
+            true,
+        ).show()
     }
 
     LaunchedEffect(uiState.success) {
@@ -157,25 +203,23 @@ fun AddReminderScreen(
                     )
                     Spacer(Modifier.height(16.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(
-                            value = uiState.date,
-                            onValueChange = viewModel::onDateChanged,
-                            label = { Text("Date *") },
-                            placeholder = { Text("YYYY-MM-DD") },
-                            singleLine = true,
+                        DateTimeSelectorCard(
+                            label = "Date *",
+                            value = formatDate(uiState.selectedDateMillis),
+                            icon = Icons.Rounded.Event,
+                            contentDescription = "Select reminder date",
                             isError = validationMessage.contains("date", ignoreCase = true),
-                            colors = textFieldColors,
                             modifier = Modifier.weight(1f),
+                            onClick = ::showDatePicker,
                         )
-                        OutlinedTextField(
+                        DateTimeSelectorCard(
+                            label = "Time *",
                             value = uiState.time,
-                            onValueChange = viewModel::onTimeChanged,
-                            label = { Text("Time *") },
-                            placeholder = { Text("HH:mm") },
-                            singleLine = true,
+                            icon = Icons.Rounded.Schedule,
+                            contentDescription = "Select reminder time",
                             isError = validationMessage.contains("time", ignoreCase = true),
-                            colors = textFieldColors,
                             modifier = Modifier.weight(1f),
+                            onClick = ::showTimePicker,
                         )
                     }
                     Spacer(Modifier.height(16.dp))
@@ -215,6 +259,61 @@ fun AddReminderScreen(
                 )
             }
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun DateTimeSelectorCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    contentDescription: String,
+    isError: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = modifier
+            .height(78.dp)
+            .semantics { this.contentDescription = contentDescription }
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = CareTailCard,
+        shadowElevation = 1.dp,
+        border = BorderStroke(
+            width = if (isError) 2.dp else 1.dp,
+            color = if (isError) CareTailAccent else CareTailPrimary.copy(alpha = 0.55f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(34.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = CareTailPrimaryDark, modifier = Modifier.size(22.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isError) CareTailAccent else CareTailTextSecondary,
+                    maxLines = 1,
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = CareTailTextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

@@ -12,7 +12,7 @@ import com.caretail.app.reminders.ReminderNotificationScheduler
 import com.caretail.app.util.defaultReminderDueAtMillis
 import com.caretail.app.util.formatInputDate
 import com.caretail.app.util.formatInputTime
-import com.caretail.app.util.parseDateTimeMillis
+import java.util.Calendar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,8 +32,11 @@ data class AddReminderUiState(
     val selectedPetId: Long? = null,
     val title: String = "",
     val type: String = ReminderTypes.first(),
-    val date: String = formatInputDate(defaultReminderDueAtMillis()),
-    val time: String = formatInputTime(defaultReminderDueAtMillis()),
+    val selectedDateMillis: Long = dateOnlyMillis(defaultReminderDueAtMillis()),
+    val selectedHour: Int = hourOfDay(defaultReminderDueAtMillis()),
+    val selectedMinute: Int = minuteOfHour(defaultReminderDueAtMillis()),
+    val date: String = formatInputDate(combineDateTimeMillis(selectedDateMillis, selectedHour, selectedMinute)),
+    val time: String = formatInputTime(combineDateTimeMillis(selectedDateMillis, selectedHour, selectedMinute)),
     val repeatType: String = RepeatTypes.first(),
     val notes: String = "",
     val isLoading: Boolean = true,
@@ -85,6 +88,9 @@ class AddReminderViewModel(
                             selectedPetId = reminder.petId,
                             title = reminder.title,
                             type = reminder.type,
+                            selectedDateMillis = dateOnlyMillis(reminder.dueAtMillis),
+                            selectedHour = hourOfDay(reminder.dueAtMillis),
+                            selectedMinute = minuteOfHour(reminder.dueAtMillis),
                             date = formatInputDate(reminder.dueAtMillis),
                             time = formatInputTime(reminder.dueAtMillis),
                             repeatType = reminder.repeatType,
@@ -103,9 +109,38 @@ class AddReminderViewModel(
 
     fun onTypeSelected(value: String) = update { copy(type = value, validationError = null, generalError = null) }
 
-    fun onDateChanged(value: String) = update { copy(date = value, validationError = null, generalError = null) }
+    fun onDateSelected(year: Int, zeroBasedMonth: Int, dayOfMonth: Int) {
+        val selectedDateMillis = Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, zeroBasedMonth)
+            set(Calendar.DAY_OF_MONTH, dayOfMonth)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        update {
+            copy(
+                selectedDateMillis = selectedDateMillis,
+                date = formatInputDate(selectedDateMillis),
+                validationError = null,
+                generalError = null,
+            )
+        }
+    }
 
-    fun onTimeChanged(value: String) = update { copy(time = value, validationError = null, generalError = null) }
+    fun onTimeSelected(hour: Int, minute: Int) {
+        update {
+            val dueAtMillis = combineDateTimeMillis(selectedDateMillis, hour, minute)
+            copy(
+                selectedHour = hour,
+                selectedMinute = minute,
+                time = formatInputTime(dueAtMillis),
+                validationError = null,
+                generalError = null,
+            )
+        }
+    }
 
     fun onRepeatTypeSelected(value: String) {
         if (value in PremiumRepeatTypes && !PremiumManager.canUseAdvancedRecurringReminders()) {
@@ -197,7 +232,7 @@ class AddReminderViewModel(
 
     private fun validate(state: AddReminderUiState): ValidReminderForm? {
         val petId = state.selectedPetId
-        val dueAtMillis = parseDateTimeMillis(state.date, state.time)
+        val dueAtMillis = combineDateTimeMillis(state.selectedDateMillis, state.selectedHour, state.selectedMinute)
         return when {
             state.pets.isEmpty() -> {
                 update { copy(validationError = "Add a pet before creating a reminder.") }
@@ -215,10 +250,6 @@ class AddReminderViewModel(
                 update { copy(validationError = "Choose a reminder type.") }
                 null
             }
-            dueAtMillis == null -> {
-                update { copy(validationError = "Use date as YYYY-MM-DD and time as HH:mm.") }
-                null
-            }
             else -> ValidReminderForm(petId = petId, dueAtMillis = dueAtMillis)
         }
     }
@@ -232,3 +263,27 @@ private data class ValidReminderForm(
     val petId: Long,
     val dueAtMillis: Long,
 )
+
+private fun dateOnlyMillis(millis: Long): Long =
+    Calendar.getInstance().apply {
+        timeInMillis = millis
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+
+private fun hourOfDay(millis: Long): Int =
+    Calendar.getInstance().apply { timeInMillis = millis }.get(Calendar.HOUR_OF_DAY)
+
+private fun minuteOfHour(millis: Long): Int =
+    Calendar.getInstance().apply { timeInMillis = millis }.get(Calendar.MINUTE)
+
+private fun combineDateTimeMillis(dateMillis: Long, hour: Int, minute: Int): Long =
+    Calendar.getInstance().apply {
+        timeInMillis = dateMillis
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, minute)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
