@@ -100,6 +100,8 @@ dependencies {
     implementation("com.google.android.play:review-ktx:2.0.2")
     kapt("androidx.room:room-compiler:2.8.4")
 
+    testImplementation("junit:junit:4.13.2")
+
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.6")
 }
 

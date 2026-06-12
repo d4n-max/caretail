@@ -1,6 +1,7 @@
 package com.caretail.app.reminders
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -45,7 +46,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .build()
 
-            NotificationManagerCompat.from(context).notify(reminderId.toInt(), notification)
+            postNotification(context, reminderId, notification)
         }
 
         val reminder = ReminderEntity(
@@ -67,4 +68,15 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
     private fun canPostNotifications(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+    @SuppressLint("MissingPermission")
+    private fun postNotification(
+        context: Context,
+        reminderId: Long,
+        notification: android.app.Notification,
+    ) {
+        runCatching {
+            NotificationManagerCompat.from(context).notify(reminderId.toInt(), notification)
+        }
+    }
 }

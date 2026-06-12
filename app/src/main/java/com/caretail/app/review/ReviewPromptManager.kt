@@ -11,9 +11,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 
 private const val ReviewPromptStoreName = "caretail_review_prompt"
-private const val OneDayMillis = 24L * 60L * 60L * 1_000L
-private const val ReviewPromptThrottleMillis = 90L * OneDayMillis
-
 private val Context.reviewPromptDataStore by preferencesDataStore(name = ReviewPromptStoreName)
 
 class ReviewPromptManager(
@@ -53,7 +50,7 @@ class ReviewPromptManager(
         if (activity == null || !noBlockingUi) return false
 
         val state = currentState()
-        if (!state.isEligible(trigger, hasPetProfile, nowMillis)) return false
+        if (!ReviewPromptEligibility.isEligible(state, trigger, hasPetProfile, nowMillis)) return false
 
         recordPromptAttempt(nowMillis)
 
@@ -89,26 +86,6 @@ class ReviewPromptManager(
             preferences[LastReviewPromptAttemptAtMillisKey] = nowMillis
             preferences[ReviewPromptAttemptCountKey] = (preferences[ReviewPromptAttemptCountKey] ?: 0) + 1
         }
-    }
-
-    private fun ReviewPromptState.isEligible(
-        trigger: ReviewTrigger,
-        hasPetProfile: Boolean,
-        nowMillis: Long,
-    ): Boolean {
-        val firstLaunchAt = firstLaunchAtMillis.takeIf { it > 0L } ?: return false
-        val enoughTimeHasPassed = nowMillis - firstLaunchAt >= OneDayMillis
-        val throttleWindowPassed = lastReviewPromptAttemptAtMillis == 0L ||
-            nowMillis - lastReviewPromptAttemptAtMillis >= ReviewPromptThrottleMillis
-        val enoughPositiveActivity = reminderCreatedCount >= 2 || diaryEntrySavedCount >= 1
-        val hasCompletedPositiveAction = reminderCompletedCount >= 1 || diaryEntrySavedCount >= 1
-        return trigger in ReviewTrigger.entries &&
-            hasPetProfile &&
-            enoughPositiveActivity &&
-            hasCompletedPositiveAction &&
-            launchCount >= 2 &&
-            enoughTimeHasPassed &&
-            throttleWindowPassed
     }
 
     private companion object {

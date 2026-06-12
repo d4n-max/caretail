@@ -225,7 +225,7 @@ class BillingRepository(
         val offer = productDetails.subscriptionOfferDetails
             ?.filter { it.basePlanId == plan.basePlanId }
             ?.sortedWith(compareBy<ProductDetails.SubscriptionOfferDetails> { it.offerId != null })
-            ?.firstOrNull()
+            ?.firstOrNull() ?: return null
         val pricingPhase = offer?.pricingPhases?.pricingPhaseList?.lastOrNull()
         return PremiumProduct(
             plan = plan,
