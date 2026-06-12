@@ -9,6 +9,7 @@ import com.caretail.app.data.local.entities.ReminderEntity
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.reminders.ReminderNotificationScheduler
+import com.caretail.app.review.ReviewPromptManager
 import com.caretail.app.util.defaultReminderDueAtMillis
 import com.caretail.app.util.formatInputDate
 import com.caretail.app.util.formatInputTime
@@ -51,6 +52,7 @@ class AddReminderViewModel(
     private val petRepository: PetRepository,
     private val reminderRepository: ReminderRepository,
     private val reminderNotificationScheduler: ReminderNotificationScheduler,
+    private val reviewPromptManager: ReviewPromptManager,
     private val preselectedPetId: Long? = null,
     private val editReminderId: Long? = null,
 ) : ViewModel() {
@@ -202,6 +204,7 @@ class AddReminderViewModel(
                 )
                 val savedReminder = if (state.editingReminderId == null) {
                     val reminderId = reminderRepository.addReminder(reminder)
+                    reviewPromptManager.onReminderCreated()
                     reminder.copy(id = reminderId)
                 } else {
                     reminderRepository.updateReminder(reminder)

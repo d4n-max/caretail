@@ -24,7 +24,8 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
 
         if (reminderId <= 0L || reminderTitle.isBlank()) return
 
-        if (canPostNotifications(context)) {
+        val notificationPreferences = NotificationPreferences(context.applicationContext)
+        if (notificationPreferences.areCareRemindersEnabled() && canPostNotifications(context)) {
             val openAppIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
@@ -60,7 +61,7 @@ class ReminderNotificationReceiver : BroadcastReceiver() {
             createdAtMillis = dueAtMillis,
             updatedAtMillis = dueAtMillis,
         )
-        ReminderNotificationScheduler(context.applicationContext).scheduleNextRepeatIfNeeded(reminder, petName)
+        ReminderNotificationScheduler(context.applicationContext, notificationPreferences).scheduleNextRepeatIfNeeded(reminder, petName)
     }
 
     private fun canPostNotifications(context: Context): Boolean =

@@ -25,19 +25,23 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.reminders.ReminderNotificationScheduler
+import com.caretail.app.review.ReviewPromptManager
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
@@ -57,6 +61,7 @@ import com.caretail.app.ui.theme.CareTailTextSecondary
 import com.caretail.app.ui.theme.CareTailWarmSurface
 import com.caretail.app.ui.viewmodel.RemindersViewModel
 import com.caretail.app.ui.viewmodel.RemindersViewModelFactory
+import com.caretail.app.util.findActivity
 
 @Composable
 fun RemindersScreen(
@@ -65,15 +70,30 @@ fun RemindersScreen(
     reminderRepository: ReminderRepository,
     reminderNotificationScheduler: ReminderNotificationScheduler,
     petRepository: PetRepository,
+    reviewPromptManager: ReviewPromptManager,
     onAddReminder: () -> Unit,
     onEditReminder: (Long) -> Unit,
 ) {
-    val factory = remember(reminderRepository, petRepository) {
-        RemindersViewModelFactory(reminderRepository, reminderNotificationScheduler, petRepository)
+    val factory = remember(reminderRepository, petRepository, reviewPromptManager) {
+        RemindersViewModelFactory(reminderRepository, reminderNotificationScheduler, petRepository, reviewPromptManager)
     }
     val viewModel: RemindersViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     var pendingDelete by remember { mutableStateOf<ReminderUiModel?>(null) }
+    val latestUiState by rememberUpdatedState(uiState)
+    val latestPendingDelete by rememberUpdatedState(pendingDelete)
+
+    LaunchedEffect(viewModel) {
+        viewModel.reviewTriggerEvents.collect { trigger ->
+            reviewPromptManager.requestReviewIfEligible(
+                activity = context.findActivity(),
+                trigger = trigger,
+                hasPetProfile = latestUiState.hasPetProfile,
+                noBlockingUi = latestPendingDelete == null,
+            )
+        }
+    }
 
     pendingDelete?.let { reminder ->
         AlertDialog(

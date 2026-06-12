@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.Notes
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -36,7 +37,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -51,13 +54,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
+import com.caretail.app.reminders.NotificationPreferences
 import com.caretail.app.reminders.ReminderNotificationScheduler
+import com.caretail.app.review.ReviewPromptManager
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
 import com.caretail.app.ui.components.PrimaryCoralButton
 import com.caretail.app.ui.components.ReminderTypeChip
 import com.caretail.app.ui.components.SectionHeader
+import com.caretail.app.ui.components.TextActionButton
 import com.caretail.app.ui.components.careTailOutlinedTextFieldColors
 import com.caretail.app.ui.navigation.CareTailRoute
 import com.caretail.app.ui.theme.CareTailAccent
@@ -82,6 +88,8 @@ fun AddReminderScreen(
     petRepository: PetRepository,
     reminderRepository: ReminderRepository,
     reminderNotificationScheduler: ReminderNotificationScheduler,
+    notificationPreferences: NotificationPreferences,
+    reviewPromptManager: ReviewPromptManager,
     preselectedPetId: Long?,
     editReminderId: Long? = null,
     onBack: () -> Unit,
@@ -89,17 +97,19 @@ fun AddReminderScreen(
     onAddPet: () -> Unit,
     onOpenPremium: (PremiumUpsellReason) -> Unit,
 ) {
-    val factory = remember(petRepository, reminderRepository, preselectedPetId, editReminderId) {
-        AddReminderViewModelFactory(petRepository, reminderRepository, reminderNotificationScheduler, preselectedPetId, editReminderId)
+    val factory = remember(petRepository, reminderRepository, reviewPromptManager, preselectedPetId, editReminderId) {
+        AddReminderViewModelFactory(petRepository, reminderRepository, reminderNotificationScheduler, reviewPromptManager, preselectedPetId, editReminderId)
     }
     val viewModel: AddReminderViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val textFieldColors = careTailOutlinedTextFieldColors()
     val validationMessage = uiState.validationError.orEmpty()
+    var showNotificationExplanation by remember { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
+        notificationPreferences.setCareRemindersEnabled(granted)
         viewModel.saveReminder(notificationPermissionGranted = granted)
     }
 
@@ -109,10 +119,16 @@ fun AddReminderScreen(
 
     fun saveWithNotificationPermissionCheck() {
         if (!viewModel.validateBeforePermissionRequest()) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission()) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (!notificationPreferences.areCareRemindersEnabled()) {
+            viewModel.saveReminder(notificationPermissionGranted = false)
+        } else if (
+            uiState.editingReminderId == null &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !hasNotificationPermission()
+        ) {
+            showNotificationExplanation = true
         } else {
-            viewModel.saveReminder(notificationPermissionGranted = true)
+            viewModel.saveReminder(notificationPermissionGranted = hasNotificationPermission())
         }
     }
 
@@ -150,6 +166,35 @@ fun AddReminderScreen(
             onOpenPremium(reason)
             viewModel.onPremiumNavigationConsumed()
         }
+    }
+
+    if (showNotificationExplanation) {
+        AlertDialog(
+            onDismissRequest = { showNotificationExplanation = false },
+            title = { Text("Enable care reminders?") },
+            text = {
+                Text("CareTail can remind you about pet care tasks like vaccines, medication, grooming, and vet visits.")
+            },
+            confirmButton = {
+                TextActionButton(
+                    text = "Enable reminders",
+                    onClick = {
+                        showNotificationExplanation = false
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    },
+                )
+            },
+            dismissButton = {
+                TextActionButton(
+                    text = "Not now",
+                    onClick = {
+                        showNotificationExplanation = false
+                        notificationPreferences.setCareRemindersEnabled(false)
+                        viewModel.saveReminder(notificationPermissionGranted = false)
+                    },
+                )
+            },
+        )
     }
 
     CareTailScaffold(

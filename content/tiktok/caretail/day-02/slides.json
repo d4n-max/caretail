@@ -1,0 +1,86 @@
+{
+  "campaign": "DCP Labs TikTok Slideshow",
+  "day": 2,
+  "app": "CareTail",
+  "concept": "What most pet owners forget to track",
+  "format": {
+    "platform": "TikTok",
+    "type": "photo slideshow / carousel",
+    "orientation": "vertical",
+    "width": 1080,
+    "height": 1920,
+    "slideCount": 7,
+    "motion": "none",
+    "voiceover": "none"
+  },
+  "source": {
+    "screenshotMethod": "Real Android emulator screenshots captured from com.caretail.app",
+    "rawScreenshotDirectory": "raw-screenshots/",
+    "finalSlideDirectory": "final-slides/",
+    "noFakeMockups": true
+  },
+  "brand": {
+    "topLabel": "DCP LABS",
+    "appLabel": "CareTail",
+    "style": "black graphite editorial with warm gold accents, softened for premium pet care"
+  },
+  "slides": [
+    {
+      "number": "01/07",
+      "title": "What most pet owners forget to track",
+      "subtitle": "Pet care is more than food and walks.",
+      "realScreenshotsUsed": ["raw-screenshots/01-home.png"],
+      "visual": "Real CareTail home screen.",
+      "file": "final-slides/caretail-day-02-slide-01.png"
+    },
+    {
+      "number": "02/07",
+      "title": "Medications and reminders",
+      "subtitle": "Dates, times, and repeated care tasks are easy to miss.",
+      "realScreenshotsUsed": ["raw-screenshots/04-add-reminder.png"],
+      "visual": "Real Add Reminder screen showing medication, vet visit, grooming, repeat, date/time, and notes fields.",
+      "file": "final-slides/caretail-day-02-slide-02.png"
+    },
+    {
+      "number": "03/07",
+      "title": "Vet visits and follow-ups",
+      "subtitle": "Notes matter when you need to remember what changed.",
+      "realScreenshotsUsed": ["raw-screenshots/02-pet-profile.png"],
+      "visual": "Real Luna profile screen showing upcoming reminders, recent health diary, documents, and export report access.",
+      "file": "final-slides/caretail-day-02-slide-03.png"
+    },
+    {
+      "number": "04/07",
+      "title": "Symptoms and behavior changes",
+      "subtitle": "Small details make more sense when they stay in one place.",
+      "realScreenshotsUsed": ["raw-screenshots/05-diary.png"],
+      "visual": "Real Health Diary screen showing symptoms, mood, appetite, and energy tracking.",
+      "file": "final-slides/caretail-day-02-slide-04.png"
+    },
+    {
+      "number": "05/07",
+      "title": "Grooming and routines",
+      "subtitle": "Repeated tasks need a simple system.",
+      "realScreenshotsUsed": ["raw-screenshots/03-reminders.png", "raw-screenshots/04-add-reminder.png"],
+      "visual": "Real Reminders list and Add Reminder screen showing routine-related reminder types.",
+      "file": "final-slides/caretail-day-02-slide-05.png"
+    },
+    {
+      "number": "06/07",
+      "title": "Keep care history together",
+      "subtitle": "One pet profile. Clearer care records.",
+      "realScreenshotsUsed": ["raw-screenshots/06-profile-history.png"],
+      "visual": "Real Luna profile screen with reminders, diary, documents, and report access in one place.",
+      "file": "final-slides/caretail-day-02-slide-06.png"
+    },
+    {
+      "number": "07/07",
+      "title": "Meet CareTail",
+      "subtitle": "A calmer way to organize pet care.",
+      "cta": "Visit CareTail",
+      "realScreenshotsUsed": ["raw-screenshots/01-home.png", "raw-screenshots/05-diary.png"],
+      "visual": "Two real CareTail screenshots: home and health diary.",
+      "file": "final-slides/caretail-day-02-slide-07.png"
+    }
+  ]
+}

@@ -27,11 +27,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetRepository
+import com.caretail.app.review.ReviewPromptManager
+import com.caretail.app.review.ReviewTrigger
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
 import com.caretail.app.ui.components.CareTailTopBar
@@ -49,6 +52,7 @@ import com.caretail.app.ui.viewmodel.AddDiaryEntryViewModelFactory
 import com.caretail.app.ui.viewmodel.AppetiteValues
 import com.caretail.app.ui.viewmodel.EnergyLevelValues
 import com.caretail.app.ui.viewmodel.MoodValues
+import com.caretail.app.util.findActivity
 
 @Composable
 fun AddDiaryEntryScreen(
@@ -56,6 +60,7 @@ fun AddDiaryEntryScreen(
     onNavigate: (String) -> Unit,
     petRepository: PetRepository,
     healthDiaryRepository: HealthDiaryRepository,
+    reviewPromptManager: ReviewPromptManager,
     preselectedPetId: Long?,
     editEntryId: Long? = null,
     onBack: () -> Unit,
@@ -63,15 +68,22 @@ fun AddDiaryEntryScreen(
     onAddPet: () -> Unit,
     onOpenPremium: (PremiumUpsellReason) -> Unit,
 ) {
-    val factory = remember(petRepository, healthDiaryRepository, preselectedPetId, editEntryId) {
-        AddDiaryEntryViewModelFactory(petRepository, healthDiaryRepository, preselectedPetId, editEntryId)
+    val factory = remember(petRepository, healthDiaryRepository, reviewPromptManager, preselectedPetId, editEntryId) {
+        AddDiaryEntryViewModelFactory(petRepository, healthDiaryRepository, reviewPromptManager, preselectedPetId, editEntryId)
     }
     val viewModel: AddDiaryEntryViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     val textFieldColors = careTailOutlinedTextFieldColors()
 
     LaunchedEffect(uiState.success) {
         if (uiState.success) {
+            reviewPromptManager.requestReviewIfEligible(
+                activity = context.findActivity(),
+                trigger = ReviewTrigger.DiaryEntrySaved,
+                hasPetProfile = uiState.pets.isNotEmpty(),
+                noBlockingUi = true,
+            )
             onSaved()
         }
     }

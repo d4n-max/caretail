@@ -22,6 +22,21 @@ Use this checklist for a fresh manual pass before sharing an MVP build.
 ## 3. Reminder flow
 
 - Add a reminder linked to a real pet.
+- Open Add Reminder.
+- Tap Date.
+- Confirm calendar picker opens.
+- Select a date.
+- Confirm keyboard does not open.
+- Tap Time.
+- Confirm time picker opens.
+- Select hour and minute.
+- Save reminder.
+- Confirm reminder appears with correct date/time.
+- Edit reminder.
+- Confirm existing date/time are prefilled.
+- Change date/time and save.
+- Confirm notification scheduling still works.
+- Confirm Monthly/Yearly Premium repeat options do not cause PremiumScreen navigation loop.
 - Confirm it appears on Reminders and Home.
 - Edit the reminder and confirm title, type, date/time, repeat, and notes persist.
 - Mark the reminder complete and confirm it moves to Completed.
@@ -30,6 +45,33 @@ Use this checklist for a fresh manual pass before sharing an MVP build.
 - Create a reminder a few minutes in the future and confirm the local notification appears.
 - Tap the notification and confirm CareTail opens.
 - Deny notification permission on Android 13+ and confirm the reminder still saves.
+
+## 3a. Notification QA
+
+1. Create reminder.
+2. Permission explanation appears only after first reminder or enabling reminders.
+3. Grant permission.
+4. Reminder notification appears.
+5. Deny permission.
+6. Reminder still saves.
+7. Complete reminder cancels notification.
+8. Delete reminder cancels notification.
+9. Edit reminder reschedules notification.
+10. Delete local data cancels notifications if implemented.
+11. No notification appears on first app launch.
+
+## 3b. Review prompt QA
+
+1. Fresh install: no review prompt.
+2. First launch: no review prompt.
+3. Create pet: no review prompt.
+4. Create first reminder: no review prompt.
+5. Complete first reminder before 24h/2 launches: no prompt.
+6. After eligibility conditions, complete reminder: review flow may trigger.
+7. Repeated completion should not spam prompt.
+8. Delete actions never trigger prompt.
+9. Failed validation never triggers prompt.
+10. PremiumScreen never triggers prompt.
 
 ## 4. Health diary flow
 
@@ -54,14 +96,30 @@ Use this checklist for a fresh manual pass before sharing an MVP build.
 - Confirm completed reminders do not count toward the active reminder limit.
 - Confirm Monthly and Yearly reminder repeats open the Premium gate for free users.
 - Confirm PremiumScreen shows contextual reasons for pet, reminder, diary, document, export, and advanced repeat gates.
-- Confirm Start Premium shows the billing-not-implemented message.
 - Enable Premium test mode and confirm limits are disabled.
 - Confirm export report is locked for free users.
 - Confirm export report works with Premium test mode enabled.
 
+## 6a. Billing QA
+
+1. PremiumScreen loads products.
+2. Monthly price appears from Play.
+3. Yearly price appears from Play.
+4. Monthly purchase starts billing flow.
+5. Yearly purchase starts billing flow.
+6. Canceled purchase does not unlock Premium.
+7. Successful purchase unlocks Premium.
+8. Restore purchases works.
+9. Free limits still work without Premium.
+10. Premium gates unlock with active subscription.
+11. Debug Premium test mode is not visible in release build.
+12. App does not crash if BillingClient cannot connect.
+13. Products unavailable state is handled gracefully.
+
 ## 7. Settings
 
 - Confirm Premium test mode toggles on and off.
+- Confirm Restore purchases checks Google Play and reports restored or no active subscription.
 - Confirm Privacy, Data, and About rows render without crashes.
 - Confirm unavailable MVP actions are clearly labeled and do not look like production billing or cloud features.
 

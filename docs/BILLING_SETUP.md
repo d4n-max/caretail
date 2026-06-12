@@ -5,7 +5,11 @@ CareTail Premium uses native Google Play Billing subscriptions. The MVP keeps en
 ## Product IDs
 
 - Monthly subscription: `caretail_premium_monthly`
+- Monthly base plan: `monthly`
 - Yearly subscription: `caretail_premium_yearly`
+- Yearly base plan: `yearly`
+
+Billing Library version: `com.android.billingclient:billing:9.0.0`
 
 ## Google Play Console Steps
 
@@ -32,10 +36,13 @@ CareTail Premium uses native Google Play Billing subscriptions. The MVP keeps en
 - Premium entitlement is client-side only.
 - Active subscription purchases set CareTail Premium to active.
 - Unacknowledged subscription purchases are acknowledged by the app.
+- Pending purchases do not unlock Premium until Google Play reports a purchased subscription.
+- Product details use `ProductType.SUBS` and select the matching base plan offer token.
+- Localized prices come from Google Play product details.
 - Premium test mode remains available in debug builds only.
 - Existing Premium gates continue to read from `PremiumManager.isPremium`.
 
-TODO: Add server-side purchase verification before relying on purchase tokens for a production-scale launch.
+Limitation: add server-side purchase verification before relying on purchase tokens for a production-scale launch.
 
 ## Restore Purchases
 

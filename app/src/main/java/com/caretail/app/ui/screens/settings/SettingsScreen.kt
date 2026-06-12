@@ -1,6 +1,11 @@
 package com.caretail.app.ui.screens.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,11 +52,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.caretail.app.auth.AuthUiState
 import com.caretail.app.BuildConfig
+import com.caretail.app.billing.BillingRepository
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetDocumentRepository
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
+import com.caretail.app.reminders.NotificationPreferences
 import com.caretail.app.reminders.ReminderNotificationScheduler
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
@@ -67,6 +74,7 @@ import com.caretail.app.ui.theme.CareTailTextPrimary
 import com.caretail.app.ui.theme.CareTailTextSecondary
 import com.caretail.app.ui.theme.CareTailWarmSurface
 import com.caretail.app.util.findActivity
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 
 @Composable
@@ -80,6 +88,8 @@ fun SettingsScreen(
     healthDiaryRepository: HealthDiaryRepository,
     petDocumentRepository: PetDocumentRepository,
     reminderNotificationScheduler: ReminderNotificationScheduler,
+    notificationPreferences: NotificationPreferences,
+    billingRepository: BillingRepository,
     authUiState: AuthUiState,
     onGoogleSignIn: (android.app.Activity?) -> Unit,
     onSignOut: () -> Unit,
@@ -90,9 +100,55 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val isPremium by PremiumManager.isPremium.collectAsState()
     val isPremiumTestMode by PremiumManager.isPremiumTestMode.collectAsState()
+    val careRemindersEnabled by notificationPreferences.careRemindersEnabled.collectAsState()
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var showNotificationExplanation by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        notificationPreferences.setCareRemindersEnabled(granted)
+        if (granted) {
+            scope.launch {
+                rescheduleFutureReminders(
+                    reminderRepository = reminderRepository,
+                    petRepository = petRepository,
+                    reminderNotificationScheduler = reminderNotificationScheduler,
+                )
+            }
+        } else {
+            feedbackMessage = "Reminders were saved, but notifications are off."
+        }
+    }
+
+    fun hasNotificationPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+    fun disableCareReminderNotifications() {
+        notificationPreferences.setCareRemindersEnabled(false)
+        scope.launch {
+            reminderRepository.getAllReminders().forEach { reminder ->
+                reminderNotificationScheduler.cancelReminder(reminder.id)
+            }
+        }
+    }
+
+    fun enableCareReminderNotifications() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission()) {
+            showNotificationExplanation = true
+            return
+        }
+        notificationPreferences.setCareRemindersEnabled(true)
+        scope.launch {
+            rescheduleFutureReminders(
+                reminderRepository = reminderRepository,
+                petRepository = petRepository,
+                reminderNotificationScheduler = reminderNotificationScheduler,
+            )
+        }
+    }
 
     authUiState.errorMessage?.let { message ->
         AlertDialog(
@@ -103,6 +159,10 @@ fun SettingsScreen(
             title = { Text("Google Sign-In") },
             text = { Text(message) },
         )
+    }
+
+    androidx.compose.runtime.LaunchedEffect(billingRepository) {
+        billingRepository.messages.collect { message -> feedbackMessage = message }
     }
 
     feedbackMessage?.let { message ->
@@ -162,6 +222,34 @@ fun SettingsScreen(
         )
     }
 
+    if (showNotificationExplanation) {
+        AlertDialog(
+            onDismissRequest = { showNotificationExplanation = false },
+            title = { Text("Enable care reminders?") },
+            text = {
+                Text("CareTail can remind you about pet care tasks like vaccines, medication, grooming, and vet visits.")
+            },
+            confirmButton = {
+                TextActionButton(
+                    text = "Enable reminders",
+                    onClick = {
+                        showNotificationExplanation = false
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    },
+                )
+            },
+            dismissButton = {
+                TextActionButton(
+                    text = "Not now",
+                    onClick = {
+                        showNotificationExplanation = false
+                        notificationPreferences.setCareRemindersEnabled(false)
+                    },
+                )
+            },
+        )
+    }
+
     CareTailScaffold(
         currentRoute = currentRoute,
         onNavigate = onNavigate,
@@ -186,6 +274,47 @@ fun SettingsScreen(
                     subtitle = if (isPremium) "Premium active" else "Free plan",
                     icon = Icons.Rounded.Star,
                     onClick = onOpenPremium,
+                )
+                SettingsRow(
+                    title = "Restore purchases",
+                    subtitle = "Check Google Play for an active CareTail Premium subscription.",
+                    icon = Icons.Rounded.Star,
+                    onClick = billingRepository::restorePurchases,
+                )
+            }
+
+            SettingsSection(title = "Notifications") {
+                val notificationsAvailable = hasNotificationPermission()
+                SettingsRow(
+                    title = "Care reminders",
+                    subtitle = when {
+                        careRemindersEnabled && notificationsAvailable -> "Local alerts for reminders you create."
+                        careRemindersEnabled -> "Needs notification permission."
+                        else -> "Reminder notifications are off."
+                    },
+                    icon = Icons.Rounded.Info,
+                    trailing = {
+                        Switch(
+                            checked = careRemindersEnabled && notificationsAvailable,
+                            onCheckedChange = { enabled ->
+                                if (enabled) {
+                                    enableCareReminderNotifications()
+                                } else {
+                                    disableCareReminderNotifications()
+                                }
+                            },
+                        )
+                    },
+                )
+                SettingsRow(
+                    title = "Gentle overdue reminder",
+                    subtitle = "Planned. CareTail will not send overdue follow-ups yet.",
+                    icon = Icons.Rounded.Info,
+                )
+                SettingsRow(
+                    title = "Quiet hours",
+                    subtitle = "Planned fixed window: 21:00 to 08:00.",
+                    icon = Icons.Rounded.Info,
                 )
             }
 
@@ -385,4 +514,18 @@ private fun SettingsRow(
             )
         }
     }
+}
+
+private suspend fun rescheduleFutureReminders(
+    reminderRepository: ReminderRepository,
+    petRepository: PetRepository,
+    reminderNotificationScheduler: ReminderNotificationScheduler,
+) {
+    val now = System.currentTimeMillis()
+    reminderRepository.getAllReminders()
+        .filter { reminder -> !reminder.isCompleted && reminder.dueAtMillis > now }
+        .forEach { reminder ->
+            val petName = petRepository.getPetById(reminder.petId)?.name.orEmpty()
+            reminderNotificationScheduler.rescheduleReminder(reminder, petName)
+        }
 }

@@ -20,10 +20,12 @@ private const val ReminderExtraDueAtMillis = "due_at_millis"
 
 class ReminderNotificationScheduler(
     private val context: Context,
+    private val notificationPreferences: NotificationPreferences = NotificationPreferences(context),
 ) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     fun scheduleReminder(reminder: ReminderEntity, petName: String) {
+        if (!notificationPreferences.areCareRemindersEnabled()) return
         if (reminder.isCompleted) return
         val triggerAtMillis = reminder.dueAtMillis.coerceAtLeast(System.currentTimeMillis() + 1_000L)
         alarmManager.setAndAllowWhileIdle(

@@ -8,6 +8,7 @@ import com.caretail.app.data.local.entities.HealthDiaryEntryEntity
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetRepository
+import com.caretail.app.review.ReviewPromptManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +41,7 @@ data class AddDiaryEntryUiState(
 class AddDiaryEntryViewModel(
     private val petRepository: PetRepository,
     private val healthDiaryRepository: HealthDiaryRepository,
+    private val reviewPromptManager: ReviewPromptManager,
     private val preselectedPetId: Long? = null,
     private val editEntryId: Long? = null,
 ) : ViewModel() {
@@ -153,6 +155,7 @@ class AddDiaryEntryViewModel(
                 } else {
                     healthDiaryRepository.updateEntry(entry)
                 }
+                reviewPromptManager.onDiaryEntrySaved()
                 update { copy(isLoading = false, success = true) }
             } catch (error: Exception) {
                 update { copy(isLoading = false, generalError = error.message ?: "Unable to save health note.") }

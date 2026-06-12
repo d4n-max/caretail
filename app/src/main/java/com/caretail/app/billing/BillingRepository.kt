@@ -24,7 +24,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class BillingRepository(context: Context) : PurchasesUpdatedListener {
+class BillingRepository(
+    context: Context,
+    private val entitlementStore: PremiumEntitlementStore,
+) : PurchasesUpdatedListener {
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -48,7 +51,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
     fun startConnection() {
         if (billingClient.isReady || isConnecting) return
         isConnecting = true
-        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+        _uiState.value = _uiState.value.copy(status = BillingStatus.Loading, isLoading = true, errorMessage = null)
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingResult: BillingResult) {
                 isConnecting = false
@@ -63,8 +66,9 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
             override fun onBillingServiceDisconnected() {
                 isConnecting = false
                 _uiState.value = _uiState.value.copy(
+                    status = BillingStatus.ProductsUnavailable,
                     isLoading = false,
-                    errorMessage = "Premium products are unavailable right now. Please try again later.",
+                    errorMessage = ProductsUnavailableMessage,
                 )
                 startConnection()
             }
@@ -74,7 +78,7 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
     fun launchPurchase(activity: Activity, plan: PremiumPlan) {
         val product = _uiState.value.products.firstOrNull { it.plan == plan }
         if (product == null) {
-            emitMessage("Premium products are unavailable right now. Please try again later.")
+            emitMessage(ProductsUnavailableMessage)
             startConnection()
             return
         }
@@ -86,8 +90,10 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
         val flowParams = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(productDetailsParamsBuilder.build()))
             .build()
+        _uiState.value = _uiState.value.copy(status = BillingStatus.PurchaseInProgress, errorMessage = null)
         val result = billingClient.launchBillingFlow(activity, flowParams)
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+            _uiState.value = _uiState.value.copy(status = BillingStatus.PurchaseError, isLoading = false)
             emitMessage(friendlyBillingMessage(result.responseCode))
         }
     }
@@ -104,13 +110,20 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> handlePurchases(purchases.orEmpty(), showRestoreFeedback = false)
-            BillingClient.BillingResponseCode.USER_CANCELED -> emitMessage("Purchase canceled.")
+            BillingClient.BillingResponseCode.USER_CANCELED -> {
+                _uiState.value = _uiState.value.copy(status = BillingStatus.ProductsLoaded, isLoading = false)
+                emitMessage("Purchase canceled.")
+            }
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> queryActivePurchases(showFeedback = true)
             BillingClient.BillingResponseCode.SERVICE_DISCONNECTED -> {
+                _uiState.value = _uiState.value.copy(status = BillingStatus.PurchaseError, isLoading = false)
                 emitMessage("Google Play Billing disconnected. Please try again.")
                 startConnection()
             }
-            else -> emitMessage(friendlyBillingMessage(billingResult.responseCode))
+            else -> {
+                _uiState.value = _uiState.value.copy(status = BillingStatus.PurchaseError, isLoading = false)
+                emitMessage(friendlyBillingMessage(billingResult.responseCode))
+            }
         }
     }
 
@@ -129,10 +142,11 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 val mappedProducts = productDetailsResult.productDetailsList.mapNotNull(::mapProductDetails)
                 _uiState.value = _uiState.value.copy(
+                    status = if (mappedProducts.isEmpty()) BillingStatus.ProductsUnavailable else BillingStatus.ProductsLoaded,
                     isLoading = false,
                     products = mappedProducts,
                     errorMessage = if (mappedProducts.isEmpty()) {
-                        "Premium products are unavailable right now. Please try again later."
+                        ProductsUnavailableMessage
                     } else {
                         null
                     },
@@ -162,17 +176,35 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
             purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
                 purchase.products.any { productId -> PremiumPlan.entries.any { it.productId == productId } }
         }
+        val pendingPurchases = purchases.filter { purchase ->
+            purchase.purchaseState == Purchase.PurchaseState.PENDING &&
+                purchase.products.any { productId -> PremiumPlan.entries.any { it.productId == productId } }
+        }
 
         activePurchases.forEach(::acknowledgeIfNeeded)
 
         val hasPremium = activePurchases.isNotEmpty()
         PremiumManager.setBillingEntitlement(hasPremium)
-        _uiState.value = _uiState.value.copy(isPremium = PremiumManager.isPremium.value)
+        scope.launch {
+            entitlementStore.saveEntitlement(hasActiveSubscription = hasPremium)
+        }
+        _uiState.value = _uiState.value.copy(
+            status = when {
+                hasPremium && showRestoreFeedback -> BillingStatus.Restored
+                hasPremium -> BillingStatus.PurchaseSuccess
+                pendingPurchases.isNotEmpty() -> BillingStatus.PurchasePending
+                else -> BillingStatus.NotPremium
+            },
+            isLoading = false,
+            isPremium = PremiumManager.isPremium.value,
+        )
 
         if (showRestoreFeedback) {
             emitMessage(if (hasPremium) "Premium restored." else "No active Premium subscription found.")
+        } else if (pendingPurchases.isNotEmpty()) {
+            emitMessage("Your purchase is pending. Premium will unlock when payment is confirmed.")
         } else if (hasPremium) {
-            emitMessage("CareTail Premium is active.")
+            emitMessage("Premium unlocked. Thank you for supporting CareTail.")
         }
     }
 
@@ -190,11 +222,15 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
 
     private fun mapProductDetails(productDetails: ProductDetails): PremiumProduct? {
         val plan = PremiumPlan.entries.firstOrNull { it.productId == productDetails.productId } ?: return null
-        val offer = productDetails.subscriptionOfferDetails?.firstOrNull()
-        val pricingPhase = offer?.pricingPhases?.pricingPhaseList?.firstOrNull()
+        val offer = productDetails.subscriptionOfferDetails
+            ?.filter { it.basePlanId == plan.basePlanId }
+            ?.sortedWith(compareBy<ProductDetails.SubscriptionOfferDetails> { it.offerId != null })
+            ?.firstOrNull()
+        val pricingPhase = offer?.pricingPhases?.pricingPhaseList?.lastOrNull()
         return PremiumProduct(
             plan = plan,
             productId = productDetails.productId,
+            basePlanId = offer?.basePlanId ?: plan.basePlanId,
             title = productDetails.title,
             description = productDetails.description,
             price = pricingPhase?.formattedPrice ?: plan.fallbackPrice,
@@ -205,8 +241,9 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
 
     private fun setUnavailable() {
         _uiState.value = _uiState.value.copy(
+            status = BillingStatus.ProductsUnavailable,
             isLoading = false,
-            errorMessage = "Premium products are unavailable right now. Please try again later.",
+            errorMessage = ProductsUnavailableMessage,
         )
     }
 
@@ -219,8 +256,10 @@ class BillingRepository(context: Context) : PurchasesUpdatedListener {
         BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> "Google Play Billing is not available on this device."
         BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> "This Premium plan is unavailable right now."
         BillingClient.BillingResponseCode.ERROR -> "Google Play Billing could not complete that request."
-        else -> "Premium could not be started. Please try again later."
+        else -> "Purchase could not be completed. Please try again."
     }
 
-    // TODO: Add server-side purchase verification before relying on client-only entitlement for production launch.
+    private companion object {
+        const val ProductsUnavailableMessage = "Premium is temporarily unavailable. Please try again later."
+    }
 }

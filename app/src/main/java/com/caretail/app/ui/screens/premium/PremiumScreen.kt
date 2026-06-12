@@ -39,7 +39,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.caretail.app.BuildConfig
 import com.caretail.app.R
+import com.caretail.app.billing.BillingStatus
 import com.caretail.app.billing.BillingRepository
 import com.caretail.app.billing.PremiumPlan
 import com.caretail.app.billing.PremiumUpsellReason
@@ -68,6 +70,9 @@ fun PremiumScreen(
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     val monthlyProduct = billingState.products.firstOrNull { it.plan == PremiumPlan.Monthly }
     val yearlyProduct = billingState.products.firstOrNull { it.plan == PremiumPlan.Yearly }
+    val productsUnavailable = billingState.status == BillingStatus.ProductsUnavailable
+    val purchaseInProgress = billingState.status == BillingStatus.PurchaseInProgress
+    val selectedProduct = billingState.products.firstOrNull { it.plan == selectedPlan }
 
     BackHandler(onBack = onClose)
 
@@ -154,15 +159,14 @@ fun PremiumScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 PricingCard(
                     title = "Monthly",
-                    price = monthlyProduct?.price ?: PremiumPlan.Monthly.fallbackPrice,
+                    price = monthlyProduct?.price ?: if (productsUnavailable) "Unavailable" else "Loading...",
                     selected = selectedPlan == PremiumPlan.Monthly,
                     modifier = Modifier.weight(1f),
                     onClick = { selectedPlan = PremiumPlan.Monthly },
                 )
                 PricingCard(
                     title = "Yearly",
-                    price = yearlyProduct?.price ?: PremiumPlan.Yearly.fallbackPrice,
-                    detail = "Only $2.49/mo",
+                    price = yearlyProduct?.price ?: if (productsUnavailable) "Unavailable" else "Loading...",
                     badge = "Best Value",
                     selected = selectedPlan == PremiumPlan.Yearly,
                     modifier = Modifier.weight(1f),
@@ -189,7 +193,13 @@ fun PremiumScreen(
             }
             Spacer(Modifier.height(28.dp))
             PrimaryCoralButton(
-                text = if (billingState.isLoading) "Loading Premium..." else "Start Premium",
+                text = when {
+                    billingState.isLoading -> "Loading Premium..."
+                    purchaseInProgress -> "Starting..."
+                    billingState.isPremium -> "Premium Active"
+                    else -> "Start Premium"
+                },
+                enabled = !billingState.isLoading && !purchaseInProgress && !billingState.isPremium && selectedProduct != null,
                 onClick = {
                     val activity = context.findActivity()
                     if (activity == null) {
@@ -199,13 +209,15 @@ fun PremiumScreen(
                     }
                 },
             )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Premium can be toggled from Settings in testing builds.",
-                style = MaterialTheme.typography.bodySmall,
-                color = CareTailTextSecondary,
-                textAlign = TextAlign.Center,
-            )
+            if (BuildConfig.DEBUG) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Debug builds can use Premium test mode from Settings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CareTailTextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TextActionButton(text = "Maybe later", onClick = onMaybeLater)
