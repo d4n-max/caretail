@@ -35,11 +35,11 @@ object PremiumManager {
     fun canAddReminder(activeReminderCount: Int): Boolean =
         _isPremium.value || activeReminderCount < PremiumLimits.FREE_ACTIVE_REMINDER_LIMIT
 
-    fun canAddDiaryEntry(totalDiaryEntryCount: Int): Boolean =
-        _isPremium.value || totalDiaryEntryCount < PremiumLimits.FREE_DIARY_ENTRY_LIMIT
+    fun canAddDiaryEntry(currentEntryCount: Int): Boolean =
+        _isPremium.value || currentEntryCount < PremiumLimits.FREE_DIARY_ENTRY_LIMIT
 
-    fun canAddDocument(totalDocumentCount: Int): Boolean =
-        _isPremium.value || totalDocumentCount < PremiumLimits.FREE_DOCUMENT_LIMIT
+    fun canAddDocument(currentDocumentCount: Int): Boolean =
+        _isPremium.value || currentDocumentCount < PremiumLimits.FREE_DOCUMENT_LIMIT
 
     fun canUseAdvancedRecurringReminders(): Boolean = _isPremium.value
 

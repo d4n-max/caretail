@@ -3,6 +3,7 @@ package com.caretail.app.auth
 import android.app.Activity
 import android.content.Context
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -39,7 +40,18 @@ class AuthRepository(
 
     fun signOut() {
         firebaseAuth.signOut()
-        // TODO: Future cloud backup/sync should disconnect remote session state without deleting local Room data.
+    }
+
+    suspend fun deleteAccount(): AuthResultMessage {
+        val user = firebaseAuth.currentUser ?: return AuthResultMessage.Error("No CareTail account is signed in.")
+        return try {
+            user.delete().await()
+            AuthResultMessage.Success
+        } catch (error: FirebaseAuthRecentLoginRequiredException) {
+            AuthResultMessage.recentLoginRequired()
+        } catch (error: Exception) {
+            AuthResultMessage.accountDeletionFailed()
+        }
     }
 
     private fun FirebaseUser.toAuthUser(): AuthUser =
@@ -54,4 +66,12 @@ class AuthRepository(
 sealed interface AuthResultMessage {
     data object Success : AuthResultMessage
     data class Error(val message: String) : AuthResultMessage
+
+    companion object {
+        fun recentLoginRequired(): Error =
+            Error("Please sign in again before deleting your account.")
+
+        fun accountDeletionFailed(): Error =
+            Error("Could not delete your account. Please try again.")
+    }
 }

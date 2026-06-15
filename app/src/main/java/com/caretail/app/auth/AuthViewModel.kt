@@ -45,6 +45,21 @@ class AuthViewModel(
         _uiState.update { it.copy(errorMessage = null) }
     }
 
+    fun deleteAccount(onDeleted: () -> Unit = {}) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            when (val result = authRepository.deleteAccount()) {
+                AuthResultMessage.Success -> {
+                    _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                    onDeleted()
+                }
+                is AuthResultMessage.Error -> _uiState.update {
+                    it.copy(isLoading = false, errorMessage = result.message)
+                }
+            }
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }

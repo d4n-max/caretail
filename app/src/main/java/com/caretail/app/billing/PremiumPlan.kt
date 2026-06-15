@@ -10,12 +10,12 @@ enum class PremiumPlan(
         productId = "caretail_premium_monthly",
         basePlanId = "monthly",
         label = "Monthly",
-        fallbackPrice = "$4.99/month",
+        fallbackPrice = "$2.99/month",
     ),
     Yearly(
         productId = "caretail_premium_yearly",
         basePlanId = "yearly",
         label = "Yearly",
-        fallbackPrice = "$29.99/year",
+        fallbackPrice = "$19.99/year",
     ),
 }

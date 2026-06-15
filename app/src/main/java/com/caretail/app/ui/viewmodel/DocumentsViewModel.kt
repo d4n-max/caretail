@@ -2,7 +2,6 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.caretail.app.billing.PremiumLimits
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.repository.PetDocumentRepository
@@ -21,9 +20,7 @@ data class DocumentsUiState(
     val pets: List<PetEntity> = emptyList(),
     val selectedPetId: Long? = null,
     val documents: List<PetDocumentUiModel> = emptyList(),
-    val totalDocumentCount: Int = 0,
     val isPremium: Boolean = false,
-    val freeDocumentLimit: Int = PremiumLimits.FREE_DOCUMENT_LIMIT,
     val isLoading: Boolean = true,
 ) {
     val hasDocuments: Boolean
@@ -56,7 +53,6 @@ class DocumentsViewModel(
                 documents.filter { document -> resolvedPetId == null || document.petId == resolvedPetId },
                 pets,
             ),
-            totalDocumentCount = documents.size,
             isPremium = isPremium,
             isLoading = false,
         )

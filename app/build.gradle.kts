@@ -39,8 +39,8 @@ android {
         applicationId = "com.caretail.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.1.3"
+        versionCode = 5
+        versionName = "1.0.0"
     }
 
     buildFeatures {

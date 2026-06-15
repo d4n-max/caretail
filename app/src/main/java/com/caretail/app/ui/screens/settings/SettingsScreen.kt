@@ -54,6 +54,7 @@ import com.caretail.app.auth.AuthUiState
 import com.caretail.app.BuildConfig
 import com.caretail.app.billing.BillingRepository
 import com.caretail.app.billing.PremiumManager
+import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetDocumentRepository
 import com.caretail.app.data.repository.PetRepository
@@ -81,7 +82,7 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
-    onOpenPremium: () -> Unit,
+    onOpenPremium: (PremiumUpsellReason?) -> Unit,
     onOpenDocuments: () -> Unit,
     petRepository: PetRepository,
     reminderRepository: ReminderRepository,
@@ -93,6 +94,7 @@ fun SettingsScreen(
     authUiState: AuthUiState,
     onGoogleSignIn: (android.app.Activity?) -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: (onDeleted: () -> Unit) -> Unit,
     onClearAuthError: () -> Unit,
     onLocalDataDeleted: () -> Unit,
 ) {
@@ -103,6 +105,7 @@ fun SettingsScreen(
     val careRemindersEnabled by notificationPreferences.careRemindersEnabled.collectAsState()
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var showDeleteAccountConfirmation by remember { mutableStateOf(false) }
     var showNotificationExplanation by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -150,6 +153,28 @@ fun SettingsScreen(
         }
     }
 
+    fun deleteLocalData(afterDelete: () -> Unit = {}) {
+        scope.launch {
+            isDeleting = true
+            try {
+                reminderRepository.getAllReminders().forEach { reminder ->
+                    reminderNotificationScheduler.cancelReminder(reminder.id)
+                }
+                petDocumentRepository.deleteAllDocuments()
+                healthDiaryRepository.deleteAllEntries()
+                reminderRepository.deleteAllReminders()
+                petRepository.deleteAllPets()
+                showDeleteConfirmation = false
+                afterDelete()
+                onLocalDataDeleted()
+            } catch (error: Exception) {
+                feedbackMessage = "Local data could not be deleted. Please try again."
+            } finally {
+                isDeleting = false
+            }
+        }
+    }
+
     authUiState.errorMessage?.let { message ->
         AlertDialog(
             onDismissRequest = onClearAuthError,
@@ -190,24 +215,8 @@ fun SettingsScreen(
                     text = if (isDeleting) "Deleting..." else "Delete",
                     enabled = !isDeleting,
                     onClick = {
-                        scope.launch {
-                            isDeleting = true
-                            try {
-                                reminderRepository.getAllReminders().forEach { reminder ->
-                                    reminderNotificationScheduler.cancelReminder(reminder.id)
-                                }
-                                petDocumentRepository.deleteAllDocuments()
-                                healthDiaryRepository.deleteAllEntries()
-                                reminderRepository.deleteAllReminders()
-                                petRepository.deleteAllPets()
-                                showDeleteConfirmation = false
-                                Toast.makeText(context, "Local data deleted.", Toast.LENGTH_SHORT).show()
-                                onLocalDataDeleted()
-                            } catch (error: Exception) {
-                                feedbackMessage = "Local data could not be deleted. Please try again."
-                            } finally {
-                                isDeleting = false
-                            }
+                        deleteLocalData {
+                            Toast.makeText(context, "Local data deleted.", Toast.LENGTH_SHORT).show()
                         }
                     },
                 )
@@ -217,6 +226,49 @@ fun SettingsScreen(
                     text = "Cancel",
                     enabled = !isDeleting,
                     onClick = { showDeleteConfirmation = false },
+                )
+            },
+        )
+    }
+
+    if (showDeleteAccountConfirmation) {
+        AlertDialog(
+            onDismissRequest = { if (!authUiState.isLoading && !isDeleting) showDeleteAccountConfirmation = false },
+            title = { Text("Delete account?") },
+            text = {
+                Text("This deletes your CareTail account sign-in from Firebase. Your local pet care data on this device can also be deleted if you choose.")
+            },
+            confirmButton = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DestructiveCareTailButton(
+                        text = if (authUiState.isLoading) "Deleting..." else "Delete account only",
+                        enabled = !authUiState.isLoading && !isDeleting,
+                        onClick = {
+                            onDeleteAccount {
+                                showDeleteAccountConfirmation = false
+                                feedbackMessage = "Account deleted. Local pet care data remains on this device."
+                            }
+                        },
+                    )
+                    DestructiveCareTailButton(
+                        text = if (authUiState.isLoading || isDeleting) "Deleting..." else "Delete account and local app data",
+                        enabled = !authUiState.isLoading && !isDeleting,
+                        onClick = {
+                            onDeleteAccount {
+                                showDeleteAccountConfirmation = false
+                                deleteLocalData {
+                                    feedbackMessage = "Account and local app data deleted."
+                                }
+                            }
+                        },
+                    )
+                }
+            },
+            dismissButton = {
+                TextActionButton(
+                    text = "Cancel",
+                    enabled = !authUiState.isLoading && !isDeleting,
+                    onClick = { showDeleteAccountConfirmation = false },
                 )
             },
         )
@@ -273,7 +325,7 @@ fun SettingsScreen(
                     title = "Manage Premium",
                     subtitle = if (isPremium) "Premium active" else "Free plan",
                     icon = Icons.Rounded.Star,
-                    onClick = onOpenPremium,
+                    onClick = { onOpenPremium(null) },
                 )
                 SettingsRow(
                     title = "Restore purchases",
@@ -321,9 +373,15 @@ fun SettingsScreen(
             SettingsSection(title = "Account") {
                 val user = authUiState.user
                 if (user == null) {
+                    Text(
+                        "Sign in with Google to prepare for future backup and sync.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CareTailTextSecondary,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                    )
                     SettingsRow(
                         title = if (authUiState.isLoading) "Signing in..." else "Sign in with Google",
-                        subtitle = "Optional. Cloud sync is not enabled yet.",
+                        subtitle = "CareTail still works without an account.",
                         icon = Icons.Rounded.Info,
                         onClick = {
                             if (!authUiState.isLoading) {
@@ -334,7 +392,12 @@ fun SettingsScreen(
                 } else {
                     SettingsRow(
                         title = user.displayName ?: "Signed in",
-                        subtitle = user.email ?: "Your data remains stored on this device in the MVP.",
+                        subtitle = user.email ?: "Signed in with Google",
+                        icon = Icons.Rounded.Info,
+                    )
+                    SettingsRow(
+                        title = "Signed in with Google",
+                        subtitle = "Future backup and sync is not active in this version.",
                         icon = Icons.Rounded.Info,
                     )
                     SettingsRow(
@@ -342,6 +405,13 @@ fun SettingsScreen(
                         subtitle = "Your data remains stored on this device in the MVP.",
                         icon = Icons.Rounded.CloudOff,
                         onClick = onSignOut,
+                    )
+                    SettingsRow(
+                        title = "Delete account",
+                        subtitle = "Delete Firebase sign-in, with optional local data deletion.",
+                        icon = Icons.Rounded.DeleteOutline,
+                        destructive = true,
+                        onClick = { showDeleteAccountConfirmation = true },
                     )
                 }
             }

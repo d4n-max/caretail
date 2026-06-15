@@ -41,6 +41,7 @@ Billing Library version: `com.android.billingclient:billing:9.0.0`
 - Localized prices come from Google Play product details.
 - Premium test mode remains available in debug builds only.
 - Existing Premium gates continue to read from `PremiumManager.isPremium`.
+- Basic health notes, symptom notes, local document records, and existing care history remain available on the free tier.
 
 Limitation: add server-side purchase verification before relying on purchase tokens for a production-scale launch.
 

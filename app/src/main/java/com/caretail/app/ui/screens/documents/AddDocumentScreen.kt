@@ -139,13 +139,7 @@ fun AddDocumentScreen(
                     Spacer(Modifier.height(16.dp))
                     SecondaryButton(
                         text = "Choose file",
-                        onClick = {
-                            if (viewModel.isOverFreeDocumentLimit()) {
-                                onOpenPremium(PremiumUpsellReason.DocumentLimit)
-                            } else {
-                                picker.launch(DocumentMimeTypes)
-                            }
-                        },
+                        onClick = { picker.launch(DocumentMimeTypes) },
                     )
                     uiState.fileName?.let { name ->
                         Spacer(Modifier.height(10.dp))

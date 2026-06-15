@@ -55,6 +55,7 @@ import com.caretail.app.ui.theme.CareTailPrimary
 import com.caretail.app.ui.theme.CareTailPrimaryDark
 import com.caretail.app.ui.theme.CareTailTextPrimary
 import com.caretail.app.ui.theme.CareTailTextSecondary
+import com.caretail.app.ui.theme.CareTailWarmSurface
 import com.caretail.app.util.findActivity
 
 @Composable
@@ -128,32 +129,71 @@ fun PremiumScreen(
             )
             Spacer(Modifier.height(10.dp))
             Text(
-                "Unlock the full potential of your pet care routine.",
+                "Keep every pet's care organized, from reminders to health history and vet-ready reports.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = CareTailTextSecondary,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(28.dp))
-            reason?.let {
-                CareTailCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(it.title, style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
+            reason?.let { upsellReason ->
+                CareTailCard(modifier = Modifier.fillMaxWidth(), backgroundColor = CareTailWarmSurface) {
+                    Text(
+                        upsellReason.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = CareTailTextPrimary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                     Spacer(Modifier.height(8.dp))
-                    Text(it.message, style = MaterialTheme.typography.bodyMedium, color = CareTailTextSecondary)
+                    Text(
+                        upsellReason.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CareTailTextSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
                 Spacer(Modifier.height(18.dp))
             }
             CareTailCard(modifier = Modifier.fillMaxWidth()) {
-                PremiumBenefitRow("Unlimited pets")
+                val benefits = listOf(
+                    "Unlimited pets",
+                    "Unlimited reminders",
+                    "Advanced repeat schedules",
+                    "Export care reports",
+                    "Organize documents and care history",
+                    "No ads. No selling your data.",
+                )
+                benefits.forEachIndexed { index, benefit ->
+                    if (index > 0) Spacer(Modifier.height(18.dp))
+                    PremiumBenefitRow(benefit)
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            CareTailCard(modifier = Modifier.fillMaxWidth(), backgroundColor = CareTailWarmSurface) {
+                Text(
+                    "Your free pet profile stays free. You can cancel anytime in Google Play.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = CareTailTextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(Modifier.height(22.dp))
+            CareTailCard(modifier = Modifier.fillMaxWidth()) {
+                Text("Free includes", style = MaterialTheme.typography.titleMedium, color = CareTailTextPrimary)
+                Spacer(Modifier.height(10.dp))
+                PremiumBenefitRow("1 pet profile")
                 Spacer(Modifier.height(18.dp))
-                PremiumBenefitRow("Unlimited reminders")
+                PremiumBenefitRow("5 active reminders")
                 Spacer(Modifier.height(18.dp))
-                PremiumBenefitRow("Unlimited health diary")
+                PremiumBenefitRow("5 health diary entries")
                 Spacer(Modifier.height(18.dp))
-                PremiumBenefitRow("Unlimited documents")
+                PremiumBenefitRow("3 document records")
                 Spacer(Modifier.height(18.dp))
-                PremiumBenefitRow("Exportable care reports")
+                PremiumBenefitRow("Basic local reminder notifications")
                 Spacer(Modifier.height(18.dp))
-                PremiumBenefitRow("Future cloud backup")
+                PremiumBenefitRow("Edit and delete existing data")
             }
             Spacer(Modifier.height(22.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -167,7 +207,8 @@ fun PremiumScreen(
                 PricingCard(
                     title = "Yearly",
                     price = yearlyProduct?.price ?: if (productsUnavailable) "Unavailable" else "Loading...",
-                    badge = "Best Value",
+                    detail = "Less than $1.70/month",
+                    badge = "Best value",
                     selected = selectedPlan == PremiumPlan.Yearly,
                     modifier = Modifier.weight(1f),
                     onClick = { selectedPlan = PremiumPlan.Yearly },
@@ -220,7 +261,7 @@ fun PremiumScreen(
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextActionButton(text = "Maybe later", onClick = onMaybeLater)
+                TextActionButton(text = "Continue with Free", onClick = onMaybeLater)
                 TextActionButton(
                     text = "Restore purchase",
                     onClick = billingRepository::restorePurchases,

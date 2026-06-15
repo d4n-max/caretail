@@ -3,7 +3,6 @@ package com.caretail.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.caretail.app.billing.PremiumManager
-import com.caretail.app.billing.PremiumLimits
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.local.entities.PetDocumentEntity
 import com.caretail.app.data.local.entities.PetEntity
@@ -27,8 +26,6 @@ data class AddDocumentUiState(
     val fileUri: String? = null,
     val fileName: String? = null,
     val notes: String = "",
-    val totalDocumentCount: Int = 0,
-    val isPremium: Boolean = false,
     val isLoading: Boolean = true,
     val success: Boolean = false,
     val validationError: String? = null,
@@ -83,20 +80,7 @@ class AddDocumentViewModel(
                 }
             }
         }
-        viewModelScope.launch {
-            petDocumentRepository.observeAllDocuments().collect { documents ->
-                _uiState.update { it.copy(totalDocumentCount = documents.size) }
-            }
-        }
-        viewModelScope.launch {
-            PremiumManager.isPremium.collect { isPremium ->
-                _uiState.update { it.copy(isPremium = isPremium) }
-            }
-        }
     }
-
-    fun isOverFreeDocumentLimit(): Boolean =
-        !uiState.value.isPremium && uiState.value.totalDocumentCount >= PremiumLimits.FREE_DOCUMENT_LIMIT
 
     fun onPetSelected(petId: Long) = update { copy(selectedPetId = petId, validationError = null, generalError = null) }
 

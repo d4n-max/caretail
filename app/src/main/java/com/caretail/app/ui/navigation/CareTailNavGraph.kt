@@ -73,9 +73,6 @@ fun CareTailNavGraph(
     ) {
         composable(CareTailRoute.Onboarding.route) {
             OnboardingScreen(
-                authUiState = authUiState,
-                onGoogleSignIn = authViewModel::signInWithGoogle,
-                onClearAuthError = authViewModel::clearError,
                 onGetStarted = { navController.navigate(CareTailRoute.Home.route) },
             )
         }
@@ -378,7 +375,7 @@ fun CareTailNavGraph(
             SettingsScreen(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
-                onOpenPremium = { navController.navigate(CareTailRoute.Premium.createRoute()) },
+                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
                 onOpenDocuments = { navController.navigate(CareTailRoute.Documents.route) },
                 petRepository = appContainer.petRepository,
                 reminderRepository = appContainer.reminderRepository,
@@ -390,6 +387,7 @@ fun CareTailNavGraph(
                 authUiState = authUiState,
                 onGoogleSignIn = authViewModel::signInWithGoogle,
                 onSignOut = authViewModel::signOut,
+                onDeleteAccount = authViewModel::deleteAccount,
                 onClearAuthError = authViewModel::clearError,
                 onLocalDataDeleted = {
                     navController.navigate(CareTailRoute.Home.route) {

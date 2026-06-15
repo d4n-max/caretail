@@ -2,7 +2,6 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.caretail.app.billing.PremiumLimits
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetRepository
@@ -24,9 +23,7 @@ data class HealthDiaryUiState(
     val pets: List<com.caretail.app.data.local.entities.PetEntity> = emptyList(),
     val selectedPetId: Long? = null,
     val groupedEntries: Map<String, List<HealthDiaryEntryUiModel>> = emptyMap(),
-    val totalEntryCount: Int = 0,
     val isPremium: Boolean = false,
-    val freeEntryLimit: Int = PremiumLimits.FREE_DIARY_ENTRY_LIMIT,
     val isLoading: Boolean = true,
 ) {
     val selectedPetName: String
@@ -54,9 +51,8 @@ class HealthDiaryViewModel(
         petsFlow,
         selectedPetId,
         entriesFlow,
-        healthDiaryRepository.observeAllEntries(),
         PremiumManager.isPremium,
-    ) { pets, selectedId, entries, allEntries, isPremium ->
+    ) { pets, selectedId, entries, isPremium ->
         val resolvedPetId = when {
             selectedId != null && pets.any { it.id == selectedId } -> selectedId
             else -> pets.firstOrNull()?.id
@@ -69,7 +65,6 @@ class HealthDiaryViewModel(
             pets = pets,
             selectedPetId = resolvedPetId,
             groupedEntries = models.groupBy { it.dateLabel },
-            totalEntryCount = allEntries.size,
             isPremium = isPremium,
             isLoading = false,
         )

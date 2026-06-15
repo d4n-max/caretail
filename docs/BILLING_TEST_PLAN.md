@@ -30,7 +30,7 @@
 2. Cancel purchase and confirm Premium does not unlock.
 3. Tap Yearly and confirm Google Play Billing flow starts for `caretail_premium_yearly`.
 4. Complete a test purchase and confirm Premium unlocks.
-5. Confirm Premium gates unlock: pets, reminders, diary entries, documents, Monthly/Yearly repeats, export report.
+5. Confirm Premium gates unlock: additional pets, additional active reminders, additional health diary entries, additional document records, Monthly/Yearly repeats, and export report.
 6. Confirm purchase acknowledgement succeeds.
 7. Confirm pending purchase shows: `Your purchase is pending. Premium will unlock when payment is confirmed.`
 
@@ -55,6 +55,7 @@
 2. Confirm debug build may show Premium test mode under Developer / Testing.
 3. Confirm no RevenueCat or Stripe dependencies are present.
 4. Confirm no backend, Firebase/Auth, or cloud sync is required for this billing implementation.
+5. Confirm viewing, editing, and deleting existing health notes, symptom notes, local document records, and care history are not hard-gated.
 
 ## Known Limitations
 
