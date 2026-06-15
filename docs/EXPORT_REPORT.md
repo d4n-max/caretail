@@ -23,7 +23,7 @@ Empty sections are handled with short messages such as `No upcoming reminders.` 
 
 ## Current Implementation
 
-The MVP generates readable plain text and launches Android's Sharesheet with `Intent.ACTION_SEND`. No PDF library, backend, cloud sync, auth, or billing integration is added in this version.
+The MVP generates readable plain text and launches Android's Sharesheet with `Intent.ACTION_SEND`. No PDF library, backend, cloud sync, required auth, or report upload is added in this version.
 
 ## Safe Wording
 

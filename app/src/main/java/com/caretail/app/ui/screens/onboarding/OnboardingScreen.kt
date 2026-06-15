@@ -80,8 +80,19 @@ fun OnboardingScreen(
             textAlign = TextAlign.Center,
             lineHeight = 21.sp,
         )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = "No account required. Your first pet is free, and Google Sign-In is optional later in Settings.",
+            modifier = Modifier
+                .widthIn(max = 340.dp)
+                .padding(horizontal = 8.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = CareTailTextSecondary,
+            textAlign = TextAlign.Center,
+            lineHeight = 21.sp,
+        )
         Spacer(Modifier.height(28.dp))
-        PrimaryCoralButton(text = "Get started", onClick = onGetStarted)
+        PrimaryCoralButton(text = "Add your first pet", onClick = onGetStarted)
     }
 }
 

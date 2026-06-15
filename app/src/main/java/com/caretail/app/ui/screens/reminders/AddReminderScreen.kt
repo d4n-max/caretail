@@ -213,6 +213,11 @@ fun AddReminderScreen(
                 EmptyPetsState(onAddPet = onAddPet)
             } else {
                 SectionHeader("Who is this for?")
+                Text(
+                    "Reminders save even if notifications are off. CareTail only asks for notification permission when you choose to enable alerts.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = CareTailTextSecondary,
+                )
                 Spacer(Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),

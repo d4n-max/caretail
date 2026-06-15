@@ -48,7 +48,7 @@ Entries are local to the device and tied to existing pet records.
 - No image picker yet; `imageUri` remains `null`.
 - No editing screen yet.
 - No export or document generation yet.
-- No cloud sync, auth, backend, or sharing.
+- No cloud sync, required auth, backend upload, or sharing.
 - No medical interpretation is generated.
 
 ## Future Improvements

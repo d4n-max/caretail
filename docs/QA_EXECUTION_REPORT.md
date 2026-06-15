@@ -46,7 +46,7 @@
 | Settings delete local data | Blocked for manual device QA | Code path exists; destructive local data flow should be manually confirmed before release. |
 | In-app review prompt | Pass for eligibility logic; blocked for Play UI | Eligibility unit tests pass; actual Play review dialog is controlled by Google Play and needs tester/device validation. |
 | Tracked secrets/artifacts | Pass | No tracked keystore, APK, AAB, or `local.properties` found. |
-| Firebase/Auth/Billing scope | Pass | No Firebase Auth added; Play Billing remains the billing provider; no RevenueCat or Stripe integration found. |
+| Firebase/Auth/Billing scope | Superseded by v1.1 | Optional Firebase Auth is now used only for Google Sign-In identity. Play Billing remains the Premium provider; no RevenueCat or Stripe integration found. |
 | Install and launch | Blocked for manual device QA | Plain `adb` was not available on PATH; Gradle connected task passed but no interactive launch was verified. |
 | Real Google Play subscription purchase | Blocked for Play track QA | Requires uploaded build, licensed tester account, and active Play Console products/base plans. |
 

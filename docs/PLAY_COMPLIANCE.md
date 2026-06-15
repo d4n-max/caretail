@@ -13,13 +13,23 @@ CareTail stores local pet care records for the MVP. Current local data includes 
 
 The MVP is local-first. App records are stored on the user's device using the CareTail Room database. The MVP does not require a backend service to create, view, edit, or delete records.
 
-## 3. No Account System In MVP
+## 3. Optional Account Sign-In In v1.1
 
-CareTail MVP does not include account creation, login, user profiles, or account-based identity.
+CareTail v1.1 supports optional Google Sign-In through Firebase Authentication. The app remains usable without an account.
 
-## 4. No Backend Or Cloud Sync In MVP
+If a user signs in, Firebase Authentication may process Google account identifiers such as email address, display name, profile photo, and unique Firebase user ID. CareTail does not upload pet care records to cloud services in this version.
 
-CareTail MVP does not send pet care records to CareTail servers and does not include cloud sync. Cloud backup or sync may be evaluated after MVP.
+CareTail includes an in-app account deletion path:
+
+```text
+Settings > Account > Delete account
+```
+
+Users can delete only the Firebase account sign-in or explicitly choose to delete local app data too.
+
+## 4. No Pet Data Backend Or Cloud Sync In v1.1
+
+CareTail v1.1 does not send pet care records to CareTail servers and does not include cloud sync. Cloud backup or sync may be evaluated in a later release.
 
 ## 5. No Selling User Data
 
@@ -52,6 +62,6 @@ Users can delete local CareTail records from Settings. The Delete Local Data act
 - Add a hosted Privacy Policy URL.
 - Add a hosted Terms of Use URL.
 - Complete the Google Play Data Safety form using the final permission and data usage behavior.
-- Add account deletion only if an account system is introduced later.
-- Add billing disclosures when Google Play Billing is implemented.
-- Re-check notification permission copy and onboarding before production release.
+- Publish the account deletion web URL.
+- Confirm billing disclosures for Google Play Billing Premium.
+- Re-check notification permission copy, account deletion, and onboarding before production release.

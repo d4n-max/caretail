@@ -34,6 +34,8 @@ import com.caretail.app.ui.screens.settings.SettingsScreen
 fun CareTailNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
+    startDestination: String = CareTailRoute.Onboarding.route,
+    onOnboardingCompleted: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val appContainer = remember(context) { AppContainer(context.applicationContext) }
@@ -68,12 +70,17 @@ fun CareTailNavGraph(
 
     NavHost(
         navController = navController,
-        startDestination = CareTailRoute.Onboarding.route,
+        startDestination = startDestination,
         modifier = modifier,
     ) {
         composable(CareTailRoute.Onboarding.route) {
             OnboardingScreen(
-                onGetStarted = { navController.navigate(CareTailRoute.Home.route) },
+                onGetStarted = {
+                    onOnboardingCompleted()
+                    navController.navigate(CareTailRoute.AddPet.route) {
+                        popUpTo(CareTailRoute.Onboarding.route) { inclusive = true }
+                    }
+                },
             )
         }
         composable(CareTailRoute.Home.route) {

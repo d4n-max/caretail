@@ -123,6 +123,24 @@ Use this checklist for a fresh manual pass before sharing an MVP build.
 - Confirm Privacy, Data, and About rows render without crashes.
 - Confirm unavailable MVP actions are clearly labeled and do not look like production billing or cloud features.
 
+## 7a. Google Sign-In QA
+
+1. App launches signed out.
+2. App is usable without login.
+3. Settings shows Account section.
+4. Google Sign-In starts from Settings.
+5. Successful sign-in shows name/email when available.
+6. Failed sign-in shows a calm error.
+7. Sign out works.
+8. Sign out does not delete local data.
+9. Delete account path exists.
+10. Delete account only does not delete local pet data.
+11. Delete account and local data clears local app records.
+12. Premium purchase/restore does not require Google Sign-In.
+13. No cloud backup/sync claim appears as an active feature.
+14. App does not crash if Firebase/SHA setup is incomplete.
+15. Release build does not expose debug-only account tools.
+
 ## 8. Navigation
 
 - Confirm bottom nav tabs work: Home, Pets, Reminders, Diary, Settings.

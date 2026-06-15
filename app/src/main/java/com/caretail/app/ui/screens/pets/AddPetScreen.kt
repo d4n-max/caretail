@@ -90,7 +90,11 @@ fun AddPetScreen(
         ) {
             Text(if (uiState.editingPetId == null) "Pet details" else "Edit pet details", style = MaterialTheme.typography.headlineMedium)
             Text(
-                "Create a local profile to track care reminders, health notes, and records.",
+                if (uiState.editingPetId == null) {
+                    "Only name and species are required. You can fill in the rest later."
+                } else {
+                    "Update the local profile details you want to keep handy."
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 color = CareTailTextSecondary,
             )

@@ -96,9 +96,17 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 14.dp),
         ) {
-            Text("Welcome back", style = MaterialTheme.typography.headlineMedium, color = CareTailTextPrimary)
             Text(
-                "Here is the latest on your furry friends.",
+                if (uiState.pets.isEmpty()) "Welcome to CareTail" else "Welcome back",
+                style = MaterialTheme.typography.headlineMedium,
+                color = CareTailTextPrimary,
+            )
+            Text(
+                if (uiState.pets.isEmpty()) {
+                    "Start with one pet profile, then add care reminders when you are ready."
+                } else {
+                    "Here is the latest on your furry friends."
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 color = CareTailTextSecondary,
             )
@@ -171,15 +179,25 @@ fun HomeScreen(
             } ?: EmptySmallCard("Log your first health note")
             Spacer(Modifier.height(18.dp))
             CareTailCard(backgroundColor = CareTailWarmSurface) {
-                Text("CareTail Premium", style = MaterialTheme.typography.titleLarge, color = CareTailPrimaryDark)
+                Text(
+                    if (uiState.pets.isEmpty()) "Free plan starts here" else "CareTail Premium",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = CareTailPrimaryDark,
+                )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Unlimited pets, advanced reminders, and exportable reports when you are ready.",
+                    if (uiState.pets.isEmpty()) {
+                        "CareTail works without an account and includes one pet profile, basic reminders, notes, and records."
+                    } else {
+                        "Unlimited pets, advanced reminders, and exportable reports when you are ready."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = CareTailTextSecondary,
                 )
-                Spacer(Modifier.height(14.dp))
-                PrimaryCoralButton(text = "View Premium", onClick = onOpenPremium)
+                if (uiState.pets.isNotEmpty()) {
+                    Spacer(Modifier.height(14.dp))
+                    PrimaryCoralButton(text = "View Premium", onClick = onOpenPremium)
+                }
             }
             Spacer(Modifier.height(20.dp))
         }
@@ -211,7 +229,7 @@ private fun AddFirstPetCard(onClick: () -> Unit) {
         Text("No pets yet", style = MaterialTheme.typography.titleLarge, color = CareTailTextPrimary)
         Spacer(Modifier.height(6.dp))
         Text(
-            "Create your first pet profile to track care reminders, health notes, and records.",
+            "Create your first pet profile to unlock reminders, health notes, and records.",
             style = MaterialTheme.typography.bodyMedium,
             color = CareTailTextSecondary,
         )

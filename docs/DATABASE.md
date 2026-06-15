@@ -1,6 +1,6 @@
 # CareTail Database
 
-CareTail is local-first for MVP. The Room database stores pet care data on device and does not require a backend, account system, cloud sync, billing, or notifications.
+CareTail is local-first for MVP/v1.1. The Room database stores pet care data on device and does not require a backend, account sign-in, cloud sync, billing, or notifications.
 
 ## Database Purpose
 
@@ -98,7 +98,7 @@ Sample data is not inserted automatically into the database.
 - No automatic sample seeding.
 - No migrations yet because this is version 1.
 - No cloud sync.
-- No account system.
+- Optional Google Sign-In does not change local Room data ownership.
 - No notification scheduling.
 - No Google Play Billing.
 - No domain model mapping layer yet.

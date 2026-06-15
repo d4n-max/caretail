@@ -12,7 +12,36 @@
           "package_name": "com.caretail.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "163673849900-1vcmbs22ch1i1i1q2rq91n8fvlss1lh4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.caretail.app",
+            "certificate_hash": "6c7a73b9b737b998bb0d3534809183fa169a9703"
+          }
+        },
+        {
+          "client_id": "163673849900-b359m638ioqrj63bm0qh1jcrohmlbqmq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.caretail.app",
+            "certificate_hash": "77686267fc577b3a409e48daa13e4535d086c7ec"
+          }
+        },
+        {
+          "client_id": "163673849900-mtjj8vv6ohtm3o9dfh3un4emofqhrlhn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.caretail.app",
+            "certificate_hash": "efcde43030e323c4bb077955f5b209e7172e59fc"
+          }
+        },
+        {
+          "client_id": "163673849900-rk3efebqbos381vvk4nb8k3ks4q8ppgt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBwTNH35-h9p4bhSXqegrO1NSNPXD8H2Qs"
@@ -20,7 +49,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "163673849900-rk3efebqbos381vvk4nb8k3ks4q8ppgt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

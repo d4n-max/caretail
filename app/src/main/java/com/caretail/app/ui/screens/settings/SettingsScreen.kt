@@ -374,14 +374,14 @@ fun SettingsScreen(
                 val user = authUiState.user
                 if (user == null) {
                     Text(
-                        "Sign in with Google to prepare for future backup and sync.",
+                        "Google Sign-In is optional. CareTail works locally without an account.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = CareTailTextSecondary,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                     )
                     SettingsRow(
                         title = if (authUiState.isLoading) "Signing in..." else "Sign in with Google",
-                        subtitle = "CareTail still works without an account.",
+                        subtitle = "Prepare for future backup and sync. No pet data uploads in this version.",
                         icon = Icons.Rounded.Info,
                         onClick = {
                             if (!authUiState.isLoading) {
