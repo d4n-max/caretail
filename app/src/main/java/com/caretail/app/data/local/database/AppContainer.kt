@@ -1,6 +1,7 @@
 package com.caretail.app.data.local.database
 
 import android.content.Context
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.auth.AuthRepository
 import com.caretail.app.billing.BillingRepository
 import com.caretail.app.billing.PremiumEntitlementStore
@@ -24,7 +25,8 @@ class AppContainer(context: Context) {
     val healthDiaryRepository = HealthDiaryRepository(database.healthDiaryDao())
     val petDocumentRepository = PetDocumentRepository(database.petDocumentDao())
     val premiumEntitlementStore = PremiumEntitlementStore(appContext)
-    val billingRepository = BillingRepository(appContext, premiumEntitlementStore)
+    val analyticsTracker = AnalyticsTracker(appContext)
+    val billingRepository = BillingRepository(appContext, premiumEntitlementStore, analyticsTracker)
     val authRepository = AuthRepository(appContext)
 
     init {

@@ -39,12 +39,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.BuildConfig
 import com.caretail.app.R
 import com.caretail.app.billing.BillingStatus
 import com.caretail.app.billing.BillingRepository
 import com.caretail.app.billing.PremiumPlan
 import com.caretail.app.billing.PremiumUpsellReason
+import com.caretail.app.billing.analyticsValue
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.PremiumBenefitRow
 import com.caretail.app.ui.components.PricingCard
@@ -62,6 +64,7 @@ import com.caretail.app.util.findActivity
 fun PremiumScreen(
     reason: PremiumUpsellReason?,
     billingRepository: BillingRepository,
+    analyticsTracker: AnalyticsTracker,
     onClose: () -> Unit,
     onMaybeLater: () -> Unit = onClose,
 ) {
@@ -80,6 +83,13 @@ fun PremiumScreen(
     LaunchedEffect(billingRepository) {
         billingRepository.startConnection()
         billingRepository.messages.collect { message -> feedbackMessage = message }
+    }
+
+    LaunchedEffect(reason) {
+        analyticsTracker.trackPaywallViewed(
+            source = reason?.routeValue ?: AnalyticsTracker.SourceNavigation,
+            plan = selectedPlan.analyticsValue,
+        )
     }
 
     feedbackMessage?.let { message ->
@@ -242,8 +252,23 @@ fun PremiumScreen(
                 },
                 enabled = !billingState.isLoading && !purchaseInProgress && !billingState.isPremium && selectedProduct != null,
                 onClick = {
+                    analyticsTracker.trackPremiumCtaClicked(
+                        screen = AnalyticsTracker.Screens.Premium,
+                        source = AnalyticsTracker.SourcePaywall,
+                        plan = selectedPlan.analyticsValue,
+                    )
+                    analyticsTracker.trackPurchaseStarted(
+                        plan = selectedPlan.analyticsValue,
+                        source = AnalyticsTracker.SourcePaywall,
+                    )
                     val activity = context.findActivity()
                     if (activity == null) {
+                        analyticsTracker.trackPurchaseFailed(
+                            plan = selectedPlan.analyticsValue,
+                            source = AnalyticsTracker.SourcePaywall,
+                            result = AnalyticsTracker.Results.Failed,
+                            errorType = "activity_unavailable",
+                        )
                         feedbackMessage = "Premium could not be started from this screen. Please try again."
                     } else {
                         billingRepository.launchPurchase(activity, selectedPlan)

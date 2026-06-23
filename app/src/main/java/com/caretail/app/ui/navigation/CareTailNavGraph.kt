@@ -1,6 +1,7 @@
 package com.caretail.app.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -12,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.auth.AuthViewModel
 import com.caretail.app.auth.AuthViewModelFactory
 import com.caretail.app.billing.PremiumUpsellReason
@@ -46,6 +48,14 @@ fun CareTailNavGraph(
     )
     val authUiState = authViewModel.uiState.collectAsState().value
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val currentScreen = currentRoute?.analyticsScreenName() ?: AnalyticsTracker.Screens.Home
+    val openPremium: (PremiumUpsellReason?, String, String) -> Unit = { reason, screen, source ->
+        appContainer.analyticsTracker.trackPremiumCtaClicked(
+            screen = screen,
+            source = source,
+        )
+        navController.navigate(CareTailRoute.Premium.createRoute(reason))
+    }
     val onBottomNavigate: (String) -> Unit = { route ->
         navController.navigate(route) {
             popUpTo(CareTailRoute.Home.route) {
@@ -68,6 +78,17 @@ fun CareTailNavGraph(
         }
     }
 
+    LaunchedEffect(currentRoute) {
+        val screen = currentRoute?.analyticsScreenName() ?: return@LaunchedEffect
+        appContainer.analyticsTracker.trackScreenView(screen)
+        when (screen) {
+            AnalyticsTracker.Screens.Onboarding -> appContainer.analyticsTracker.trackOnboardingStarted()
+            AnalyticsTracker.Screens.Settings -> appContainer.analyticsTracker.trackSettingsOpened(
+                source = AnalyticsTracker.SourceNavigation,
+            )
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -76,6 +97,7 @@ fun CareTailNavGraph(
         composable(CareTailRoute.Onboarding.route) {
             OnboardingScreen(
                 onGetStarted = {
+                    appContainer.analyticsTracker.trackOnboardingCompleted()
                     onOnboardingCompleted()
                     navController.navigate(CareTailRoute.AddPet.route) {
                         popUpTo(CareTailRoute.Onboarding.route) { inclusive = true }
@@ -90,7 +112,9 @@ fun CareTailNavGraph(
                 petRepository = appContainer.petRepository,
                 reminderRepository = appContainer.reminderRepository,
                 healthDiaryRepository = appContainer.healthDiaryRepository,
-                onOpenPremium = { navController.navigate(CareTailRoute.Premium.createRoute()) },
+                onOpenPremium = {
+                    openPremium(null, AnalyticsTracker.Screens.Home, "home")
+                },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
                 onOpenPetProfile = { petId -> navController.navigate(CareTailRoute.PetProfile.createRoute(petId)) },
                 onAddReminder = { navController.navigate(CareTailRoute.AddReminder.createRoute()) },
@@ -105,7 +129,9 @@ fun CareTailNavGraph(
                 petRepository = appContainer.petRepository,
                 onOpenPetProfile = { petId -> navController.navigate(CareTailRoute.PetProfile.createRoute(petId)) },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
-                onOpenPremium = { navController.navigate(CareTailRoute.Premium.createRoute(PremiumUpsellReason.PetLimit)) },
+                onOpenPremium = {
+                    openPremium(PremiumUpsellReason.PetLimit, AnalyticsTracker.Screens.Pets, "pet_limit")
+                },
             )
         }
         composable(
@@ -126,7 +152,9 @@ fun CareTailNavGraph(
                 onAddReminder = { selectedPetId -> navController.navigate(CareTailRoute.AddReminder.createRoute(selectedPetId)) },
                 onAddDiaryEntry = { selectedPetId -> navController.navigate(CareTailRoute.AddDiaryEntry.createRoute(selectedPetId)) },
                 onAddDocument = { selectedPetId -> navController.navigate(CareTailRoute.AddDocument.createRoute(selectedPetId)) },
-                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
+                onOpenPremium = { reason ->
+                    openPremium(reason, AnalyticsTracker.Screens.PetProfile, reason.routeValue)
+                },
                 onEditPet = { selectedPetId -> navController.navigate(CareTailRoute.EditPet.createRoute(selectedPetId)) },
                 onDeleted = {
                     navController.navigate(CareTailRoute.Pets.route) {
@@ -147,7 +175,9 @@ fun CareTailNavGraph(
                         popUpTo(CareTailRoute.Pets.route)
                     }
                 },
-                onOpenPremium = { navController.navigate(CareTailRoute.Premium.createRoute(PremiumUpsellReason.PetLimit)) },
+                onOpenPremium = {
+                    openPremium(PremiumUpsellReason.PetLimit, currentScreen, "pet_limit")
+                },
             )
         }
         composable(
@@ -166,7 +196,9 @@ fun CareTailNavGraph(
                         launchSingleTop = true
                     }
                 },
-                onOpenPremium = { navController.navigate(CareTailRoute.Premium.createRoute(PremiumUpsellReason.PetLimit)) },
+                onOpenPremium = {
+                    openPremium(PremiumUpsellReason.PetLimit, currentScreen, "pet_limit")
+                },
             )
         }
         composable(CareTailRoute.Reminders.route) {
@@ -212,7 +244,9 @@ fun CareTailNavGraph(
                     }
                 },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
-                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
+                onOpenPremium = { reason ->
+                    openPremium(reason, currentScreen, reason.routeValue)
+                },
             )
         }
         composable(
@@ -233,7 +267,9 @@ fun CareTailNavGraph(
                 onBack = { navController.popBackStack() },
                 onSaved = { navController.navigate(CareTailRoute.Reminders.route) { launchSingleTop = true } },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
-                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
+                onOpenPremium = { reason ->
+                    openPremium(reason, currentScreen, reason.routeValue)
+                },
             )
         }
         composable(CareTailRoute.Diary.route) {
@@ -276,7 +312,9 @@ fun CareTailNavGraph(
                     }
                 },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
-                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
+                onOpenPremium = { reason ->
+                    openPremium(reason, currentScreen, reason.routeValue)
+                },
             )
         }
         composable(
@@ -295,7 +333,9 @@ fun CareTailNavGraph(
                 onBack = { navController.popBackStack() },
                 onSaved = { navController.navigate(CareTailRoute.Diary.route) { launchSingleTop = true } },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
-                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
+                onOpenPremium = { reason ->
+                    openPremium(reason, currentScreen, reason.routeValue)
+                },
             )
         }
         composable(CareTailRoute.Documents.route) {
@@ -337,7 +377,9 @@ fun CareTailNavGraph(
                     }
                 },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
-                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
+                onOpenPremium = { reason ->
+                    openPremium(reason, currentScreen, reason.routeValue)
+                },
             )
         }
         composable(
@@ -355,7 +397,9 @@ fun CareTailNavGraph(
                 onBack = { navController.popBackStack() },
                 onSaved = { navController.navigate(CareTailRoute.Documents.route) { launchSingleTop = true } },
                 onAddPet = { navController.navigate(CareTailRoute.AddPet.route) },
-                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
+                onOpenPremium = { reason ->
+                    openPremium(reason, currentScreen, reason.routeValue)
+                },
             )
         }
         composable(
@@ -374,6 +418,7 @@ fun CareTailNavGraph(
             PremiumScreen(
                 reason = reason,
                 billingRepository = appContainer.billingRepository,
+                analyticsTracker = appContainer.analyticsTracker,
                 onClose = closePremium,
                 onMaybeLater = closePremium,
             )
@@ -382,7 +427,9 @@ fun CareTailNavGraph(
             SettingsScreen(
                 currentRoute = currentRoute,
                 onNavigate = onBottomNavigate,
-                onOpenPremium = { reason -> navController.navigate(CareTailRoute.Premium.createRoute(reason)) },
+                onOpenPremium = { reason ->
+                    openPremium(reason, AnalyticsTracker.Screens.Settings, reason?.routeValue ?: AnalyticsTracker.SourceSettings)
+                },
                 onOpenDocuments = { navController.navigate(CareTailRoute.Documents.route) },
                 petRepository = appContainer.petRepository,
                 reminderRepository = appContainer.reminderRepository,
@@ -407,4 +454,25 @@ fun CareTailNavGraph(
             )
         }
     }
+}
+
+private fun String.analyticsScreenName(): String? = when {
+    this == CareTailRoute.Onboarding.route -> AnalyticsTracker.Screens.Onboarding
+    this == CareTailRoute.Home.route -> AnalyticsTracker.Screens.Home
+    this == CareTailRoute.Pets.route -> AnalyticsTracker.Screens.Pets
+    this == CareTailRoute.PetProfile.route -> AnalyticsTracker.Screens.PetProfile
+    this == CareTailRoute.AddPet.route -> AnalyticsTracker.Screens.AddPet
+    this == CareTailRoute.EditPet.route -> AnalyticsTracker.Screens.EditPet
+    this == CareTailRoute.Reminders.route -> AnalyticsTracker.Screens.Reminders
+    this == CareTailRoute.AddReminder.route -> AnalyticsTracker.Screens.AddReminder
+    this == CareTailRoute.EditReminder.route -> AnalyticsTracker.Screens.EditReminder
+    this == CareTailRoute.Diary.route -> AnalyticsTracker.Screens.Diary
+    this == CareTailRoute.AddDiaryEntry.route -> AnalyticsTracker.Screens.AddDiaryEntry
+    this == CareTailRoute.EditDiaryEntry.route -> AnalyticsTracker.Screens.EditDiaryEntry
+    this == CareTailRoute.Documents.route -> AnalyticsTracker.Screens.Documents
+    this == CareTailRoute.AddDocument.route -> AnalyticsTracker.Screens.AddDocument
+    this == CareTailRoute.EditDocument.route -> AnalyticsTracker.Screens.EditDocument
+    this == CareTailRoute.Premium.route -> AnalyticsTracker.Screens.Premium
+    this == CareTailRoute.Settings.route -> AnalyticsTracker.Screens.Settings
+    else -> null
 }

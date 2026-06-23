@@ -13,6 +13,7 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.caretail.app.analytics.AnalyticsTracker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 class BillingRepository(
     context: Context,
     private val entitlementStore: PremiumEntitlementStore,
+    private val analyticsTracker: AnalyticsTracker,
 ) : PurchasesUpdatedListener {
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -38,6 +40,7 @@ class BillingRepository(
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
     private var isConnecting = false
+    private var activePurchasePlan: PremiumPlan? = null
 
     private val billingClient: BillingClient = BillingClient.newBuilder(appContext)
         .setListener(this)
@@ -78,6 +81,12 @@ class BillingRepository(
     fun launchPurchase(activity: Activity, plan: PremiumPlan) {
         val product = _uiState.value.products.firstOrNull { it.plan == plan }
         if (product == null) {
+            analyticsTracker.trackPurchaseFailed(
+                plan = plan.analyticsValue,
+                source = AnalyticsTracker.SourceBilling,
+                result = AnalyticsTracker.Results.Unavailable,
+                errorType = "product_unavailable",
+            )
             emitMessage(ProductsUnavailableMessage)
             startConnection()
             return
@@ -91,9 +100,17 @@ class BillingRepository(
             .setProductDetailsParamsList(listOf(productDetailsParamsBuilder.build()))
             .build()
         _uiState.value = _uiState.value.copy(status = BillingStatus.PurchaseInProgress, errorMessage = null)
+        activePurchasePlan = plan
         val result = billingClient.launchBillingFlow(activity, flowParams)
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             _uiState.value = _uiState.value.copy(status = BillingStatus.PurchaseError, isLoading = false)
+            analyticsTracker.trackPurchaseFailed(
+                plan = plan.analyticsValue,
+                source = AnalyticsTracker.SourceBilling,
+                result = AnalyticsTracker.Results.Failed,
+                errorType = billingErrorType(result.responseCode),
+            )
+            activePurchasePlan = null
             emitMessage(friendlyBillingMessage(result.responseCode))
         }
     }
@@ -109,19 +126,53 @@ class BillingRepository(
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
         when (billingResult.responseCode) {
-            BillingClient.BillingResponseCode.OK -> handlePurchases(purchases.orEmpty(), showRestoreFeedback = false)
+            BillingClient.BillingResponseCode.OK -> handlePurchases(
+                purchases.orEmpty(),
+                showRestoreFeedback = false,
+                trackPurchaseFlowResult = true,
+            )
             BillingClient.BillingResponseCode.USER_CANCELED -> {
                 _uiState.value = _uiState.value.copy(status = BillingStatus.ProductsLoaded, isLoading = false)
+                analyticsTracker.trackPurchaseFailed(
+                    plan = activePurchasePlan?.analyticsValue,
+                    source = AnalyticsTracker.SourceBilling,
+                    result = AnalyticsTracker.Results.Canceled,
+                    errorType = "user_canceled",
+                )
+                activePurchasePlan = null
                 emitMessage("Purchase canceled.")
             }
-            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> queryActivePurchases(showFeedback = true)
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+                analyticsTracker.trackPurchaseFailed(
+                    plan = activePurchasePlan?.analyticsValue,
+                    source = AnalyticsTracker.SourceBilling,
+                    result = AnalyticsTracker.Results.Failed,
+                    errorType = billingErrorType(billingResult.responseCode),
+                )
+                activePurchasePlan = null
+                queryActivePurchases(showFeedback = true)
+            }
             BillingClient.BillingResponseCode.SERVICE_DISCONNECTED -> {
                 _uiState.value = _uiState.value.copy(status = BillingStatus.PurchaseError, isLoading = false)
+                analyticsTracker.trackPurchaseFailed(
+                    plan = activePurchasePlan?.analyticsValue,
+                    source = AnalyticsTracker.SourceBilling,
+                    result = AnalyticsTracker.Results.Failed,
+                    errorType = billingErrorType(billingResult.responseCode),
+                )
+                activePurchasePlan = null
                 emitMessage("Google Play Billing disconnected. Please try again.")
                 startConnection()
             }
             else -> {
                 _uiState.value = _uiState.value.copy(status = BillingStatus.PurchaseError, isLoading = false)
+                analyticsTracker.trackPurchaseFailed(
+                    plan = activePurchasePlan?.analyticsValue,
+                    source = AnalyticsTracker.SourceBilling,
+                    result = AnalyticsTracker.Results.Failed,
+                    errorType = billingErrorType(billingResult.responseCode),
+                )
+                activePurchasePlan = null
                 emitMessage(friendlyBillingMessage(billingResult.responseCode))
             }
         }
@@ -164,14 +215,22 @@ class BillingRepository(
             .build()
         billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                handlePurchases(purchases, showRestoreFeedback = showFeedback)
+                handlePurchases(
+                    purchases,
+                    showRestoreFeedback = showFeedback,
+                    trackPurchaseFlowResult = false,
+                )
             } else if (showFeedback) {
                 emitMessage(friendlyBillingMessage(billingResult.responseCode))
             }
         }
     }
 
-    private fun handlePurchases(purchases: List<Purchase>, showRestoreFeedback: Boolean) {
+    private fun handlePurchases(
+        purchases: List<Purchase>,
+        showRestoreFeedback: Boolean,
+        trackPurchaseFlowResult: Boolean,
+    ) {
         val activePurchases = purchases.filter { purchase ->
             purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
                 purchase.products.any { productId -> PremiumPlan.entries.any { it.productId == productId } }
@@ -205,6 +264,23 @@ class BillingRepository(
             emitMessage("Your purchase is pending. Premium will unlock when payment is confirmed.")
         } else if (hasPremium) {
             emitMessage("Premium unlocked. Thank you for supporting CareTail.")
+        }
+
+        if (trackPurchaseFlowResult) {
+            val purchasedPlan = activePurchases.firstOrNull()?.premiumPlan()
+            when {
+                hasPremium && purchasedPlan != null -> analyticsTracker.trackPurchaseSuccess(
+                    plan = purchasedPlan.analyticsValue,
+                    source = AnalyticsTracker.SourceBilling,
+                )
+                pendingPurchases.isEmpty() -> analyticsTracker.trackPurchaseFailed(
+                    plan = activePurchasePlan?.analyticsValue,
+                    source = AnalyticsTracker.SourceBilling,
+                    result = AnalyticsTracker.Results.EmptyPurchase,
+                    errorType = "no_premium_purchase",
+                )
+            }
+            activePurchasePlan = null
         }
     }
 
@@ -259,7 +335,26 @@ class BillingRepository(
         else -> "Purchase could not be completed. Please try again."
     }
 
+    private fun billingErrorType(responseCode: Int): String = when (responseCode) {
+        BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE -> "service_unavailable"
+        BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> "billing_unavailable"
+        BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> "item_unavailable"
+        BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> "item_already_owned"
+        BillingClient.BillingResponseCode.SERVICE_DISCONNECTED -> "service_disconnected"
+        BillingClient.BillingResponseCode.DEVELOPER_ERROR -> "developer_error"
+        BillingClient.BillingResponseCode.ERROR -> "billing_error"
+        else -> "billing_response_$responseCode"
+    }
+
+    private fun Purchase.premiumPlan(): PremiumPlan? =
+        products.firstNotNullOfOrNull { productId ->
+            PremiumPlan.entries.firstOrNull { plan -> plan.productId == productId }
+        }
+
     private companion object {
         const val ProductsUnavailableMessage = "Premium is temporarily unavailable. Please try again later."
     }
 }
+
+val PremiumPlan.analyticsValue: String
+    get() = name.lowercase()
