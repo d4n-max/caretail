@@ -39,7 +39,7 @@ android {
         applicationId = "com.caretail.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 6
+        versionCode = 7
         versionName = "1.1.0"
     }
 
