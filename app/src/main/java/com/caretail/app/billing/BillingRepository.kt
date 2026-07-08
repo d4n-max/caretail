@@ -269,7 +269,7 @@ class BillingRepository(
         if (trackPurchaseFlowResult) {
             val purchasedPlan = activePurchases.firstOrNull()?.premiumPlan()
             when {
-                hasPremium && purchasedPlan != null -> analyticsTracker.trackPurchaseSuccess(
+                hasPremium && purchasedPlan != null -> analyticsTracker.trackPurchaseCompleted(
                     plan = purchasedPlan.analyticsValue,
                     source = AnalyticsTracker.SourceBilling,
                 )

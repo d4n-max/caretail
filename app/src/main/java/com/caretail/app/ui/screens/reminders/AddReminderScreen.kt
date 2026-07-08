@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
@@ -96,9 +97,10 @@ fun AddReminderScreen(
     onSaved: () -> Unit,
     onAddPet: () -> Unit,
     onOpenPremium: (PremiumUpsellReason) -> Unit,
+    analyticsTracker: AnalyticsTracker,
 ) {
-    val factory = remember(petRepository, reminderRepository, reviewPromptManager, preselectedPetId, editReminderId) {
-        AddReminderViewModelFactory(petRepository, reminderRepository, reminderNotificationScheduler, reviewPromptManager, preselectedPetId, editReminderId)
+    val factory = remember(petRepository, reminderRepository, reviewPromptManager, analyticsTracker, preselectedPetId, editReminderId) {
+        AddReminderViewModelFactory(petRepository, reminderRepository, reminderNotificationScheduler, reviewPromptManager, analyticsTracker, preselectedPetId, editReminderId)
     }
     val viewModel: AddReminderViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()

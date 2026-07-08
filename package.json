@@ -1,0 +1,21 @@
+{
+  "name": "caretail-remotion-video",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "remotion studio",
+    "render:caretail": "remotion render CareTailTikTokVideo out/caretail-tiktok-video.mp4",
+    "stills:caretail": "powershell -ExecutionPolicy Bypass -File scripts/render-caretail-stills.ps1"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.325",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "remotion": "^4.0.325"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "typescript": "^5.8.3"
+  }
+}

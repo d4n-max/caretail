@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.repository.HealthDiaryRepository
 import com.caretail.app.data.repository.PetRepository
@@ -67,9 +68,10 @@ fun AddDiaryEntryScreen(
     onSaved: () -> Unit,
     onAddPet: () -> Unit,
     onOpenPremium: (PremiumUpsellReason) -> Unit,
+    analyticsTracker: AnalyticsTracker,
 ) {
-    val factory = remember(petRepository, healthDiaryRepository, reviewPromptManager, preselectedPetId, editEntryId) {
-        AddDiaryEntryViewModelFactory(petRepository, healthDiaryRepository, reviewPromptManager, preselectedPetId, editEntryId)
+    val factory = remember(petRepository, healthDiaryRepository, reviewPromptManager, analyticsTracker, preselectedPetId, editEntryId) {
+        AddDiaryEntryViewModelFactory(petRepository, healthDiaryRepository, reviewPromptManager, analyticsTracker, preselectedPetId, editEntryId)
     }
     val viewModel: AddDiaryEntryViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()

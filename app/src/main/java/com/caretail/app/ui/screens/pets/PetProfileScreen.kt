@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.repository.HealthDiaryRepository
@@ -80,10 +81,11 @@ fun PetProfileScreen(
     onOpenPremium: (PremiumUpsellReason) -> Unit,
     onEditPet: (Long) -> Unit,
     onDeleted: () -> Unit,
+    analyticsTracker: AnalyticsTracker,
 ) {
     val context = LocalContext.current
-    val factory = remember(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, reminderNotificationScheduler, petId) {
-        PetProfileViewModelFactory(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, reminderNotificationScheduler, petId)
+    val factory = remember(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, reminderNotificationScheduler, analyticsTracker, petId) {
+        PetProfileViewModelFactory(petRepository, reminderRepository, healthDiaryRepository, petDocumentRepository, reminderNotificationScheduler, analyticsTracker, petId)
     }
     val viewModel: PetProfileViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()

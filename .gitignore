@@ -35,3 +35,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Remotion / Node
+node_modules/
+.remotion/
+.codex-render/
+out/

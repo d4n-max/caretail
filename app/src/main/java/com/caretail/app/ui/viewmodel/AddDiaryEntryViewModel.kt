@@ -2,6 +2,7 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.local.entities.HealthDiaryEntryEntity
@@ -42,6 +43,7 @@ class AddDiaryEntryViewModel(
     private val petRepository: PetRepository,
     private val healthDiaryRepository: HealthDiaryRepository,
     private val reviewPromptManager: ReviewPromptManager,
+    private val analyticsTracker: AnalyticsTracker,
     private val preselectedPetId: Long? = null,
     private val editEntryId: Long? = null,
 ) : ViewModel() {
@@ -152,6 +154,10 @@ class AddDiaryEntryViewModel(
                 )
                 if (state.editingEntryId == null) {
                     healthDiaryRepository.addEntry(entry)
+                    analyticsTracker.trackDiaryEntryCreated(
+                        sourceScreen = AnalyticsTracker.Screens.AddDiaryEntry,
+                        hasSymptoms = state.symptoms.isNotBlank(),
+                    )
                 } else {
                     healthDiaryRepository.updateEntry(entry)
                 }

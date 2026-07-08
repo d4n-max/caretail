@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.repository.PetDocumentRepository
 import com.caretail.app.data.repository.PetRepository
@@ -69,10 +70,11 @@ fun AddDocumentScreen(
     onSaved: () -> Unit,
     onAddPet: () -> Unit,
     onOpenPremium: (PremiumUpsellReason) -> Unit,
+    analyticsTracker: AnalyticsTracker,
 ) {
     val context = LocalContext.current
-    val factory = remember(petRepository, petDocumentRepository, preselectedPetId, editDocumentId) {
-        AddDocumentViewModelFactory(petRepository, petDocumentRepository, preselectedPetId, editDocumentId)
+    val factory = remember(petRepository, petDocumentRepository, analyticsTracker, preselectedPetId, editDocumentId) {
+        AddDocumentViewModelFactory(petRepository, petDocumentRepository, analyticsTracker, preselectedPetId, editDocumentId)
     }
     val viewModel: AddDocumentViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()

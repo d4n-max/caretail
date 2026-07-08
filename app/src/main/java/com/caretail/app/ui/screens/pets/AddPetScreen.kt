@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.ui.components.CareTailCard
 import com.caretail.app.ui.components.CareTailScaffold
@@ -47,8 +48,11 @@ fun AddPetScreen(
     onBack: () -> Unit,
     onSaved: (Long) -> Unit,
     onOpenPremium: () -> Unit,
+    analyticsTracker: AnalyticsTracker,
 ) {
-    val factory = remember(petRepository, editPetId) { AddPetViewModelFactory(petRepository, editPetId) }
+    val factory = remember(petRepository, analyticsTracker, editPetId) {
+        AddPetViewModelFactory(petRepository, analyticsTracker, editPetId)
+    }
     val viewModel: AddPetViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
     val textFieldColors = careTailOutlinedTextFieldColors()

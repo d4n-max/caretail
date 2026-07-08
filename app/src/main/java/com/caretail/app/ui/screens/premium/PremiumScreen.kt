@@ -87,7 +87,8 @@ fun PremiumScreen(
 
     LaunchedEffect(reason) {
         analyticsTracker.trackPaywallViewed(
-            source = reason?.routeValue ?: AnalyticsTracker.SourceNavigation,
+            sourceScreen = AnalyticsTracker.Screens.Premium,
+            paywallReason = reason?.routeValue ?: AnalyticsTracker.SourceNavigation,
             plan = selectedPlan.analyticsValue,
         )
     }
@@ -252,9 +253,9 @@ fun PremiumScreen(
                 },
                 enabled = !billingState.isLoading && !purchaseInProgress && !billingState.isPremium && selectedProduct != null,
                 onClick = {
-                    analyticsTracker.trackPremiumCtaClicked(
-                        screen = AnalyticsTracker.Screens.Premium,
-                        source = AnalyticsTracker.SourcePaywall,
+                    analyticsTracker.trackUpgradeClicked(
+                        sourceScreen = AnalyticsTracker.Screens.Premium,
+                        paywallReason = reason?.routeValue ?: AnalyticsTracker.SourcePaywall,
                         plan = selectedPlan.analyticsValue,
                     )
                     analyticsTracker.trackPurchaseStarted(
@@ -289,7 +290,10 @@ fun PremiumScreen(
                 TextActionButton(text = "Continue with Free", onClick = onMaybeLater)
                 TextActionButton(
                     text = "Restore purchase",
-                    onClick = billingRepository::restorePurchases,
+                    onClick = {
+                        analyticsTracker.trackRestorePurchasesClicked(AnalyticsTracker.Screens.Premium)
+                        billingRepository.restorePurchases()
+                    },
                 )
             }
         }

@@ -2,6 +2,7 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.local.entities.PetEntity
@@ -53,6 +54,7 @@ class AddReminderViewModel(
     private val reminderRepository: ReminderRepository,
     private val reminderNotificationScheduler: ReminderNotificationScheduler,
     private val reviewPromptManager: ReviewPromptManager,
+    private val analyticsTracker: AnalyticsTracker,
     private val preselectedPetId: Long? = null,
     private val editReminderId: Long? = null,
 ) : ViewModel() {
@@ -205,6 +207,10 @@ class AddReminderViewModel(
                 val savedReminder = if (state.editingReminderId == null) {
                     val reminderId = reminderRepository.addReminder(reminder)
                     reviewPromptManager.onReminderCreated()
+                    analyticsTracker.trackReminderCreated(
+                        sourceScreen = AnalyticsTracker.Screens.AddReminder,
+                        reminderType = state.type,
+                    )
                     reminder.copy(id = reminderId)
                 } else {
                     reminderRepository.updateReminder(reminder)

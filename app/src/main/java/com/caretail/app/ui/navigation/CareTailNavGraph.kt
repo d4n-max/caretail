@@ -42,17 +42,17 @@ fun CareTailNavGraph(
     val context = LocalContext.current
     val appContainer = remember(context) { AppContainer(context.applicationContext) }
     val authViewModel: AuthViewModel = viewModel(
-        factory = remember(appContainer.authRepository) {
-            AuthViewModelFactory(appContainer.authRepository)
+        factory = remember(appContainer.authRepository, appContainer.analyticsTracker) {
+            AuthViewModelFactory(appContainer.authRepository, appContainer.analyticsTracker)
         },
     )
     val authUiState = authViewModel.uiState.collectAsState().value
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     val currentScreen = currentRoute?.analyticsScreenName() ?: AnalyticsTracker.Screens.Home
     val openPremium: (PremiumUpsellReason?, String, String) -> Unit = { reason, screen, source ->
-        appContainer.analyticsTracker.trackPremiumCtaClicked(
-            screen = screen,
-            source = source,
+        appContainer.analyticsTracker.trackUpgradeClicked(
+            sourceScreen = screen,
+            paywallReason = source,
         )
         navController.navigate(CareTailRoute.Premium.createRoute(reason))
     }
@@ -162,6 +162,7 @@ fun CareTailNavGraph(
                         launchSingleTop = true
                     }
                 },
+                analyticsTracker = appContainer.analyticsTracker,
             )
         }
         composable(CareTailRoute.AddPet.route) {
@@ -178,6 +179,7 @@ fun CareTailNavGraph(
                 onOpenPremium = {
                     openPremium(PremiumUpsellReason.PetLimit, currentScreen, "pet_limit")
                 },
+                analyticsTracker = appContainer.analyticsTracker,
             )
         }
         composable(
@@ -199,6 +201,7 @@ fun CareTailNavGraph(
                 onOpenPremium = {
                     openPremium(PremiumUpsellReason.PetLimit, currentScreen, "pet_limit")
                 },
+                analyticsTracker = appContainer.analyticsTracker,
             )
         }
         composable(CareTailRoute.Reminders.route) {
@@ -211,6 +214,7 @@ fun CareTailNavGraph(
                 reviewPromptManager = appContainer.reviewPromptManager,
                 onAddReminder = { navController.navigate(CareTailRoute.AddReminder.createRoute()) },
                 onEditReminder = { reminderId -> navController.navigate(CareTailRoute.EditReminder.createRoute(reminderId)) },
+                analyticsTracker = appContainer.analyticsTracker,
             )
         }
         composable(
@@ -247,6 +251,7 @@ fun CareTailNavGraph(
                 onOpenPremium = { reason ->
                     openPremium(reason, currentScreen, reason.routeValue)
                 },
+                analyticsTracker = appContainer.analyticsTracker,
             )
         }
         composable(
@@ -270,6 +275,7 @@ fun CareTailNavGraph(
                 onOpenPremium = { reason ->
                     openPremium(reason, currentScreen, reason.routeValue)
                 },
+                analyticsTracker = appContainer.analyticsTracker,
             )
         }
         composable(CareTailRoute.Diary.route) {
@@ -315,6 +321,7 @@ fun CareTailNavGraph(
                 onOpenPremium = { reason ->
                     openPremium(reason, currentScreen, reason.routeValue)
                 },
+                analyticsTracker = appContainer.analyticsTracker,
             )
         }
         composable(
@@ -336,6 +343,7 @@ fun CareTailNavGraph(
                 onOpenPremium = { reason ->
                     openPremium(reason, currentScreen, reason.routeValue)
                 },
+                analyticsTracker = appContainer.analyticsTracker,
             )
         }
         composable(CareTailRoute.Documents.route) {
@@ -380,6 +388,7 @@ fun CareTailNavGraph(
                 onOpenPremium = { reason ->
                     openPremium(reason, currentScreen, reason.routeValue)
                 },
+                analyticsTracker = appContainer.analyticsTracker,
             )
         }
         composable(
@@ -400,6 +409,7 @@ fun CareTailNavGraph(
                 onOpenPremium = { reason ->
                     openPremium(reason, currentScreen, reason.routeValue)
                 },
+                analyticsTracker = appContainer.analyticsTracker,
             )
         }
         composable(

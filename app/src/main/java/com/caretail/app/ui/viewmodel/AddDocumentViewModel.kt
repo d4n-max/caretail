@@ -2,6 +2,7 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.billing.PremiumUpsellReason
 import com.caretail.app.data.local.entities.PetDocumentEntity
@@ -36,6 +37,7 @@ data class AddDocumentUiState(
 class AddDocumentViewModel(
     private val petRepository: PetRepository,
     private val petDocumentRepository: PetDocumentRepository,
+    private val analyticsTracker: AnalyticsTracker,
     private val preselectedPetId: Long? = null,
     private val editDocumentId: Long? = null,
 ) : ViewModel() {
@@ -137,6 +139,10 @@ class AddDocumentViewModel(
                 )
                 if (state.editingDocumentId == null) {
                     petDocumentRepository.addDocument(document)
+                    analyticsTracker.trackDocumentAdded(
+                        sourceScreen = AnalyticsTracker.Screens.AddDocument,
+                        documentType = state.type,
+                    )
                 } else {
                     petDocumentRepository.updateDocument(document)
                 }

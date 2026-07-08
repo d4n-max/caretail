@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.data.repository.PetRepository
 import com.caretail.app.data.repository.ReminderRepository
 import com.caretail.app.reminders.ReminderNotificationScheduler
@@ -73,9 +74,10 @@ fun RemindersScreen(
     reviewPromptManager: ReviewPromptManager,
     onAddReminder: () -> Unit,
     onEditReminder: (Long) -> Unit,
+    analyticsTracker: AnalyticsTracker,
 ) {
-    val factory = remember(reminderRepository, petRepository, reviewPromptManager) {
-        RemindersViewModelFactory(reminderRepository, reminderNotificationScheduler, petRepository, reviewPromptManager)
+    val factory = remember(reminderRepository, petRepository, reviewPromptManager, analyticsTracker) {
+        RemindersViewModelFactory(reminderRepository, reminderNotificationScheduler, petRepository, reviewPromptManager, analyticsTracker)
     }
     val viewModel: RemindersViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()

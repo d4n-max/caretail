@@ -2,6 +2,7 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.repository.HealthDiaryRepository
@@ -47,6 +48,7 @@ class PetProfileViewModel(
     private val healthDiaryRepository: HealthDiaryRepository,
     private val petDocumentRepository: PetDocumentRepository,
     private val reminderNotificationScheduler: ReminderNotificationScheduler,
+    private val analyticsTracker: AnalyticsTracker,
     petId: Long,
 ) : ViewModel() {
     private val reportGenerator = PetHealthReportGenerator()
@@ -85,6 +87,7 @@ class PetProfileViewModel(
     fun exportCareReport() {
         val state = uiState.value
         val pet = state.pet ?: return
+        analyticsTracker.trackExportReportClicked(AnalyticsTracker.Screens.PetProfile)
         viewModelScope.launch {
             val reminders = reminderRepository.observeRemindersForPet(pet.id).first()
             val diaryEntries = healthDiaryRepository.observeEntriesForPet(pet.id).first()

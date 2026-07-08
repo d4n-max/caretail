@@ -2,6 +2,7 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.data.local.entities.PetEntity
 import com.caretail.app.data.repository.PetRepository
@@ -29,6 +30,7 @@ data class AddPetUiState(
 
 class AddPetViewModel(
     private val petRepository: PetRepository,
+    private val analyticsTracker: AnalyticsTracker,
     private val editPetId: Long? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddPetUiState())
@@ -118,6 +120,10 @@ class AddPetViewModel(
                 )
                 if (editingPetId == null) {
                     val petId = petRepository.addPet(pet)
+                    analyticsTracker.trackPetCreated(
+                        sourceScreen = AnalyticsTracker.Screens.AddPet,
+                        petCountAfterCreate = petCount + 1,
+                    )
                     update { copy(isLoading = false, savedPetId = petId) }
                 } else {
                     petRepository.updatePet(pet)

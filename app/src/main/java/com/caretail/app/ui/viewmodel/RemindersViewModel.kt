@@ -2,6 +2,7 @@ package com.caretail.app.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.caretail.app.analytics.AnalyticsTracker
 import com.caretail.app.billing.PremiumLimits
 import com.caretail.app.billing.PremiumManager
 import com.caretail.app.data.repository.PetRepository
@@ -42,6 +43,7 @@ class RemindersViewModel(
     private val reminderNotificationScheduler: ReminderNotificationScheduler,
     petRepository: PetRepository,
     private val reviewPromptManager: ReviewPromptManager,
+    private val analyticsTracker: AnalyticsTracker,
 ) : ViewModel() {
     private val _reviewTriggerEvents = MutableSharedFlow<ReviewTrigger>()
     val reviewTriggerEvents: SharedFlow<ReviewTrigger> = _reviewTriggerEvents.asSharedFlow()
@@ -72,9 +74,14 @@ class RemindersViewModel(
 
     fun markCompleted(reminderId: Long) {
         viewModelScope.launch {
+            val reminder = reminderRepository.getReminderById(reminderId)
             reminderRepository.markReminderCompleted(reminderId, System.currentTimeMillis())
             reminderNotificationScheduler.cancelReminder(reminderId)
             reviewPromptManager.onReminderCompleted()
+            analyticsTracker.trackReminderCompleted(
+                sourceScreen = AnalyticsTracker.Screens.Reminders,
+                reminderType = reminder?.type,
+            )
             _reviewTriggerEvents.emit(ReviewTrigger.ReminderCompleted)
         }
     }

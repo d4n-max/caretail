@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.caretail.app.analytics.AnalyticsTracker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 
 class AuthViewModel(
     private val authRepository: AuthRepository,
+    private val analyticsTracker: AnalyticsTracker,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -25,15 +27,21 @@ class AuthViewModel(
     }
 
     fun signInWithGoogle(activity: Activity?) {
+        analyticsTracker.trackGoogleSignInStarted(AnalyticsTracker.Screens.Settings)
         if (activity == null) {
+            analyticsTracker.trackGoogleSignInFailed(AnalyticsTracker.Screens.Settings)
             _uiState.update { it.copy(errorMessage = "Could not sign in. Please try again.") }
             return
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             when (val result = authRepository.signInWithGoogle(activity)) {
-                AuthResultMessage.Success -> _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                AuthResultMessage.Success -> {
+                    analyticsTracker.trackGoogleSignInCompleted(AnalyticsTracker.Screens.Settings)
+                    _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                }
                 is AuthResultMessage.Error -> _uiState.update {
+                    analyticsTracker.trackGoogleSignInFailed(AnalyticsTracker.Screens.Settings)
                     it.copy(isLoading = false, errorMessage = result.message)
                 }
             }
@@ -67,11 +75,12 @@ class AuthViewModel(
 
 class AuthViewModelFactory(
     private val authRepository: AuthRepository,
+    private val analyticsTracker: AnalyticsTracker,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AuthViewModel::class.java)) {
-            return AuthViewModel(authRepository) as T
+            return AuthViewModel(authRepository, analyticsTracker) as T
         }
         error("Unknown ViewModel class: ${modelClass.name}")
     }
