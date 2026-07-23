@@ -60,11 +60,11 @@ Supporting integrations are deliberately separated from the core local data mode
 - JUnit 4 unit tests
 - React, TypeScript, and Remotion for repository-local product-video rendering
 
-## Product status
+## Product Status
 
-The codebase contains an implemented, locally persisted Android MVP with release-signing and closed-testing documentation. It should be treated as **pre-production / testing-ready**, not as evidence of a public launch: no verified public website or Google Play listing is linked here.
+CareTail is live on Google Play and is actively maintained.
 
-Several integrations require environment and console configuration before a production release, including Firebase OAuth fingerprints/configuration, Google Play subscription products, signing, and device-based notification and billing validation.
+The current public release includes the core local pet-care workflow, reminders, health diary, document records, premium access, analytics, and release validation. Cloud synchronization is not currently part of the product.
 
 ## My role
 
